@@ -48,11 +48,11 @@ C:\Escaneos
 
 ## 📁 NAS (almacenamiento definitivo)
 
-/NAS/GESDOC/{cedula}/{tipo}/{archivo}.pdf
+/NAS/MEDARCH/{cedula}/{tipo}/{archivo}.pdf
 
 Ejemplo:
 
-/NAS/GESDOC/24909345/HC/HC_24909345_2014-12-01_001.pdf
+/NAS/MEDARCH/24909345/HC/HC_24909345_2014-12-01_001.pdf
 
 ---
 

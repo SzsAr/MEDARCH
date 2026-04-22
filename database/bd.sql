@@ -37,6 +37,26 @@ CREATE SCHEMA IF NOT EXISTS gesdoc AUTHORIZATION medarch_user;
 SET search_path TO gesdoc;
 
 -- ============================================
+-- 3.1 PERMISOS DE APLICACION
+-- ============================================
+
+GRANT USAGE ON SCHEMA gesdoc TO medarch_user;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON ALL TABLES IN SCHEMA gesdoc
+TO medarch_user;
+
+GRANT USAGE, SELECT
+ON ALL SEQUENCES IN SCHEMA gesdoc
+TO medarch_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA gesdoc
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO medarch_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA gesdoc
+GRANT USAGE, SELECT ON SEQUENCES TO medarch_user;
+
+-- ============================================
 -- 4. TABLA: PACIENTES
 -- ============================================
 
