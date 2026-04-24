@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 id_usuario SERIAL PRIMARY KEY,
 usuario VARCHAR(50) NOT NULL UNIQUE,
 nombre VARCHAR(150) NOT NULL,
-rol VARCHAR(50) NOT NULL CHECK (rol IN ('OPERARIO','ADMIN','SUPERADMIN')),
+rol VARCHAR(50) NOT NULL CHECK (rol IN ('CONSULTA','ARCHIVO','SUPERADMIN')),
 activo BOOLEAN DEFAULT TRUE,
 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -177,3 +177,12 @@ ON log_auditoria (id_documento);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_doc_unico
 ON documentos (id_paciente, id_tipo, fecha, consecutivo)
 WHERE estado = 'PROCESADO';
+
+-- ============================================
+-- 11. CREACION DE NUEVA COLUMNA PARA USUARIOS
+-- ============================================
+ALTER TABLE gesdoc.usuarios
+ADD COLUMN password_hash VARCHAR(255);
+ALTER TABLE gesdoc.usuarios
+ADD CONSTRAINT chk_rol
+CHECK (rol IN ('CONSULTA','ARCHIVO','SUPERADMIN'));
