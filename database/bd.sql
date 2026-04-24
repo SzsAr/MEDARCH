@@ -182,7 +182,4 @@ WHERE estado = 'PROCESADO';
 -- 11. CREACION DE NUEVA COLUMNA PARA USUARIOS
 -- ============================================
 ALTER TABLE gesdoc.usuarios
-ADD COLUMN password_hash VARCHAR(255);
-ALTER TABLE gesdoc.usuarios
-ADD CONSTRAINT chk_rol
-CHECK (rol IN ('CONSULTA','ARCHIVO','SUPERADMIN'));
+ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);

@@ -11,6 +11,16 @@ class UserCreateRequest(BaseModel):
 	rol: Literal["CONSULTA", "ARCHIVO", "SUPERADMIN"]
 
 
+class UserUpdateRequest(BaseModel):
+	nombre: str = Field(..., min_length=2, max_length=150)
+	rol: Literal["CONSULTA", "ARCHIVO", "SUPERADMIN"]
+	activo: bool
+
+
+class UserPasswordChangeRequest(BaseModel):
+	nueva_password: str = Field(..., min_length=8, max_length=128)
+
+
 class UserResponse(BaseModel):
 	id_usuario: int
 	usuario: str

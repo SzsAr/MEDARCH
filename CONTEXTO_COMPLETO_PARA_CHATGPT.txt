@@ -1,0 +1,881 @@
+═══════════════════════════════════════════════════════════════════════════════
+MEDARCH - CONTEXTO COMPLETO PARA CHATGPT
+═══════════════════════════════════════════════════════════════════════════════
+
+Fecha: 2026-04-24
+Versión: 1.0.2
+Estado: Backend parcialmente implementado (CRUD Usuarios funcional)
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 1: DESCRIPCIÓN GENERAL DEL PROYECTO
+═══════════════════════════════════════════════════════════════════════════════
+
+NOMBRE: MEDARCH
+TIPO: Sistema de gestión documental para historias clínicas digitalizadas
+OBJETIVO: Digitalizar archivos físicos históricos (10-20 años) de forma 
+          estructurada, consultable y auditable
+
+PROPÓSITO PRINCIPAL:
+- Capturar documentos escaneados desde carpeta local
+- Clasificarlos manualmente (OCR es solo apoyo)
+- Almacenarlos en NAS de forma estructurada
+- Registrar metadatos en PostgreSQL
+- Mantener trazabilidad completa con auditoría
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 2: ARQUITECTURA DEL SISTEMA
+═══════════════════════════════════════════════════════════════════════════════
+
+COMPONENTES:
+
+1. WATCHER (Python)
+   - Monitorea carpeta local C:\Escaneos\PENDIENTES
+   - Detecta nuevos archivos PDF
+   - Registra en BD como PENDIENTE
+   - Mueve a PROCESADOS cuando se completa
+   - Mueve a ERROR si falla
+
+2. BACKEND API (FastAPI)
+   - Host: http://localhost:8000
+   - Framework: FastAPI 0.116.0+
+   - Autenticación: JWT (python-jose)
+   - BD: PostgreSQL con psycopg2
+   - Puerto: 8000 (desarrolla), configurable en producción
+
+3. FRONTEND (HTML + JS + Bootstrap)
+   - Interfaz web de validación manual
+   - Formularios para clasificación
+   - Dashboard de documentos pendientes
+   - Revisión de OCR
+   - Estado: No implementado aún
+
+4. BASE DE DATOS (PostgreSQL)
+   - Schema: gesdoc
+   - User: medarch_user / Password: Medarch123*
+   - Base de datos: medarch_db
+   - Tablas: usuarios, pacientes, tipos_documento, documentos, log_auditoria
+
+5. ALMACENAMIENTO (NAS)
+   - Ruta: /NAS/MEDARCH/{cedula}/{tipo}/{archivo}.pdf
+   - Ejemplo: /NAS/MEDARCH/24909345/HC/HC_24909345_2014-12-01_001.pdf
+   - Almacenamiento definitivo (verdad física)
+
+6. OCR (Tesseract)
+   - Solo ASISTIVO (no vinculante)
+   - Extrae: cédula, tipo, fecha
+   - Usuario SIEMPRE valida manualmente
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 3: ESTRUCTURA DE CARPETAS
+═══════════════════════════════════════════════════════════════════════════════
+
+EQUIPO DE ESCANEO (Local):
+
+C:\Escaneos
+├── PENDIENTES         → Nuevos archivos, esperando procesamiento
+├── PROCESADOS         → Archivos ya completados
+└── ERROR              → Archivos con problemas
+
+NAS (Almacenamiento Definitivo):
+
+/NAS/MEDARCH
+├── {cedula}
+│   ├── HC/            → Historias Clínicas
+│   ├── LAB/           → Laboratorios
+│   ├── IMA/           → Imágenes
+│   └── RX/            → Radiografías
+│       └── HC_24909345_2014-12-01_001.pdf
+
+PROYECTO LOCAL:
+
+C:\MEDARCH
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── routes/
+│   │   │       ├── auth.py        → Autenticación JWT
+│   │   │       └── users.py       → CRUD de usuarios (6 endpoints)
+│   │   ├── core/
+│   │   │   ├── config.py          → Variables de entorno
+│   │   │   └── security.py        → JWT + bcrypt + roles
+│   │   ├── db/
+│   │   │   └── session.py         → Conexión PostgreSQL
+│   │   ├── schemas/
+│   │   │   ├── auth_schema.py     → LoginRequest, TokenResponse
+│   │   │   └── user_schema.py     → UserCreateRequest, UserResponse, etc.
+│   │   ├── services/
+│   │   │   ├── auth_service.py    → Lógica login()
+│   │   │   └── user_service.py    → CRUD: create, list, get, update, 
+│   │   │                                    change_password, toggle_status
+│   │   └── main.py                → FastAPI app + routers
+│   ├── main.py
+│   ├── requirements.txt
+│   ├── app/.env
+│   └── [documentación]
+├── database/
+│   └── bd.sql                     → Schema PostgreSQL completo
+├── watcher/                       → No implementado aún
+├── PROJECT_CONTEXT.md
+└── README.md
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 4: SCHEMA DE BASE DE DATOS
+═══════════════════════════════════════════════════════════════════════════════
+
+TABLA: gesdoc.usuarios
+─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE usuarios (
+  id_usuario SERIAL PRIMARY KEY,
+  usuario VARCHAR(50) NOT NULL UNIQUE,
+  nombre VARCHAR(150) NOT NULL,
+  rol VARCHAR(50) NOT NULL CHECK (rol IN ('CONSULTA','ARCHIVO','SUPERADMIN')),
+  activo BOOLEAN DEFAULT TRUE,
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  password_hash VARCHAR(255) NOT NULL
+);
+
+CAMPOS:
+- id_usuario: Identificador único (auto-incremento)
+- usuario: Nombre de usuario único (3-50 caracteres)
+- nombre: Nombre completo (2-150 caracteres)
+- rol: CONSULTA | ARCHIVO | SUPERADMIN
+- activo: Boolean, permite soft-delete y toggle
+- fecha_creacion: Timestamp automático
+- password_hash: Hash bcrypt de la contraseña (nunca se retorna)
+
+TABLA: gesdoc.pacientes
+─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE pacientes (
+  id_paciente SERIAL PRIMARY KEY,
+  numero_documento VARCHAR(20) NOT NULL UNIQUE,
+  nombre VARCHAR(150),
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+TABLA: gesdoc.tipos_documento
+─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE tipos_documento (
+  id_tipo SERIAL PRIMARY KEY,
+  codigo VARCHAR(10) NOT NULL UNIQUE,
+  descripcion VARCHAR(100) NOT NULL,
+  activo BOOLEAN DEFAULT TRUE
+);
+
+Ejemplos: HC (Historia Clínica), LAB (Laboratorio), IMA (Imagen), RX (Radiografía)
+
+TABLA: gesdoc.documentos (MODELO HÍBRIDO)
+─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE documentos (
+  id_documento BIGSERIAL PRIMARY KEY,
+  
+  -- DATOS INICIALES (WATCHER)
+  ruta_temporal VARCHAR(500) NOT NULL,
+  nombre_archivo_original VARCHAR(255) NOT NULL,
+  fecha_carga TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  -- ESTADO
+  estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE'
+    CHECK (estado IN ('PENDIENTE','EN_REVISION','PROCESADO','ERROR')),
+  
+  -- DATOS COMPLETADOS EN PROCESAMIENTO
+  id_paciente INT,
+  id_tipo INT,
+  fecha DATE,
+  consecutivo INT,
+  
+  nombre_archivo VARCHAR(255),
+  ruta_archivo VARCHAR(500),
+  fecha_procesado TIMESTAMP,
+  
+  -- RELACIONES
+  CONSTRAINT fk_doc_paciente FOREIGN KEY (id_paciente)
+    REFERENCES pacientes(id_paciente),
+  
+  CONSTRAINT fk_doc_tipo FOREIGN KEY (id_tipo)
+    REFERENCES tipos_documento(id_tipo),
+    
+  -- EVITAR DUPLICADOS LÓGICOS
+  UNIQUE (id_paciente, id_tipo, fecha, consecutivo) WHERE estado = 'PROCESADO'
+);
+
+CICLO DE VIDA DE DOCUMENTO:
+
+PENDIENTE    → Nuevos, esperando revisión manual
+  ↓
+EN_REVISION  → Usuario revisa OCR y completa datos
+  ↓
+PROCESADO    → Validado, guardado en NAS, archivo local a PROCESADOS
+  ↓ (error en proceso)
+ERROR        → Problemas, archivo va a ERROR, logs en BD
+
+TABLA: gesdoc.log_auditoria
+─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE log_auditoria (
+  id_log BIGSERIAL PRIMARY KEY,
+  id_documento BIGINT,
+  id_usuario INT NOT NULL,
+  accion VARCHAR(50) NOT NULL,
+  detalle VARCHAR(500),
+  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_log_doc FOREIGN KEY (id_documento)
+    REFERENCES documentos(id_documento),
+  
+  CONSTRAINT fk_log_usuario FOREIGN KEY (id_usuario)
+    REFERENCES usuarios(id_usuario)
+);
+
+ACCIONES: CREAR, ACTUALIZAR, PROCESAR, ERROR, VALIDAR_OCR, etc.
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 5: REGLAS DE NEGOCIO
+═══════════════════════════════════════════════════════════════════════════════
+
+1. CICLO DE VIDA DEL DOCUMENTO
+   ✓ Un PDF = un solo tipo de documento
+   ✓ Un PDF = una sola atención de paciente
+   ✓ Estados: PENDIENTE → EN_REVISION → PROCESADO (o ERROR)
+   ✓ No se permite volver atrás de PROCESADO (inmutable)
+
+2. VALIDACIÓN Y OCR
+   ✓ OCR es SOLO ASISTIVO
+   ✓ USUARIO SIEMPRE valida y completa datos manualmente
+   ✓ Usuario puede rechazar sugerencias OCR
+   ✓ Información final es responsabilidad del usuario
+
+3. NOMBRES DE ARCHIVO
+   ✓ Formato obligatorio: TIPO_CEDULA_FECHA_CONSECUTIVO.pdf
+   ✓ Ejemplo: HC_24909345_2014-12-01_001.pdf
+   ✓ No se permiten cambios después de guardado
+
+4. DUPLICADOS LÓGICOS
+   ✓ Prevención: UNIQUE (id_paciente, id_tipo, fecha, consecutivo)
+   ✓ Solo para documentos PROCESADOS
+   ✓ Aplicable a nivel de BD
+
+5. AUDITORÍA
+   ✓ TODA acción significativa se registra en log_auditoria
+   ✓ Quién: id_usuario
+   ✓ Qué: acción
+   ✓ Cuándo: fecha
+   ✓ Cuál documento: id_documento
+   ✓ Detalles adicionales: detalle
+
+6. ALMACENAMIENTO
+   ✓ BD es VERDAD LÓGICA
+   ✓ NAS es VERDAD FÍSICA
+   ✓ Si hay conflicto, BD siempre gana
+   ✓ Archivos locales se limpian después de 7 días
+
+7. ROLES Y PERMISOS
+   ✓ CONSULTA: Solo lectura de documentos
+   ✓ ARCHIVO: CRUD de documentos, validación OCR
+   ✓ SUPERADMIN: Gestión de usuarios, todo acceso
+
+8. CONTRASEÑAS Y SEGURIDAD
+   ✓ Mínimo 8 caracteres
+   ✓ Hash con bcrypt
+   ✓ NUNCA retornar password_hash
+   ✓ JWT con expiración 1 hora
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 6: ENDPOINTS IMPLEMENTADOS (CRUD USUARIOS)
+═══════════════════════════════════════════════════════════════════════════════
+
+BASE URL: http://localhost:8000
+
+AUTENTICACIÓN:
+───────────────────────────────────────────────────────────────────────────────
+
+POST /auth/login
+  Entrada: { "usuario": "string", "password": "string" }
+  Salida: { "access_token": "JWT", "token_type": "bearer", "expires_in": 3600 }
+  Autenticación: ❌ Pública
+
+USUARIOS - CRUD:
+───────────────────────────────────────────────────────────────────────────────
+
+1. POST /users (CREAR USUARIO)
+   Autenticación: ❌ Pública (permite crear primer SUPERADMIN)
+   Entrada:
+   {
+     "usuario": "string (3-50 caracteres)",
+     "nombre": "string (2-150 caracteres)",
+     "password": "string (8-128 caracteres)",
+     "rol": "CONSULTA | ARCHIVO | SUPERADMIN"
+   }
+   Salida (201 Created):
+   {
+     "id_usuario": int,
+     "usuario": "string",
+     "nombre": "string",
+     "rol": "string",
+     "activo": boolean,
+     "fecha_creacion": "ISO timestamp"
+   }
+   Errores:
+   - 400 Bad Request: Validación falla
+   - 409 Conflict: Usuario ya existe
+   - 500 Internal Server Error: Error BD
+
+2. GET /users (LISTAR USUARIOS)
+   Autenticación: ✅ JWT + SUPERADMIN
+   Header: Authorization: Bearer <token>
+   Salida (200 OK):
+   [
+     { "id_usuario": 1, "usuario": "...", "nombre": "...", ...},
+     { "id_usuario": 2, "usuario": "...", "nombre": "...", ...}
+   ]
+   Errores:
+   - 401 Unauthorized: Sin token o token inválido
+   - 403 Forbidden: No es SUPERADMIN
+   - 500 Internal Server Error: Error BD
+
+3. GET /users/{id_usuario} (OBTENER USUARIO)
+   Autenticación: ✅ JWT + SUPERADMIN
+   Header: Authorization: Bearer <token>
+   Parámetro: id_usuario (integer)
+   Salida (200 OK):
+   {
+     "id_usuario": int,
+     "usuario": "string",
+     "nombre": "string",
+     "rol": "string",
+     "activo": boolean,
+     "fecha_creacion": "ISO timestamp"
+   }
+   Errores:
+   - 401 Unauthorized: Sin token
+   - 403 Forbidden: No es SUPERADMIN
+   - 404 Not Found: Usuario no existe
+   - 500 Internal Server Error: Error BD
+
+4. PUT /users/{id_usuario} (ACTUALIZAR USUARIO)
+   Autenticación: ✅ JWT + SUPERADMIN
+   Header: Authorization: Bearer <token>
+   Parámetro: id_usuario (integer)
+   Entrada:
+   {
+     "nombre": "string (2-150 caracteres)",
+     "rol": "CONSULTA | ARCHIVO | SUPERADMIN",
+     "activo": boolean
+   }
+   Salida (200 OK):
+   {
+     "id_usuario": int,
+     "usuario": "string",
+     "nombre": "string",
+     "rol": "string",
+     "activo": boolean,
+     "fecha_creacion": "ISO timestamp"
+   }
+   Notas:
+   - NO se puede cambiar campo "usuario"
+   - NO se modifica contraseña (usar PATCH)
+   Errores:
+   - 400 Bad Request: Rol inválido o validación falla
+   - 401 Unauthorized: Sin token
+   - 403 Forbidden: No es SUPERADMIN
+   - 404 Not Found: Usuario no existe
+   - 500 Internal Server Error: Error BD
+
+5. PATCH /users/{id_usuario}/password (CAMBIAR CONTRASEÑA)
+   Autenticación: ✅ JWT + SUPERADMIN
+   Header: Authorization: Bearer <token>
+   Parámetro: id_usuario (integer)
+   Entrada:
+   {
+     "nueva_password": "string (8-128 caracteres)"
+   }
+   Salida (200 OK):
+   {
+     "message": "Contraseña actualizada correctamente"
+   }
+   Errores:
+   - 400 Bad Request: Contraseña < 8 caracteres
+   - 401 Unauthorized: Sin token
+   - 403 Forbidden: No es SUPERADMIN
+   - 404 Not Found: Usuario no existe
+   - 500 Internal Server Error: Error BD
+
+6. DELETE /users/{id_usuario} (TOGGLE ESTADO - ACTIVAR/DESACTIVAR)
+   Autenticación: ✅ JWT + SUPERADMIN
+   Header: Authorization: Bearer <token>
+   Parámetro: id_usuario (integer)
+   Salida (200 OK):
+   {
+     "message": "Usuario desactivado correctamente"
+     O
+     "message": "Usuario activado correctamente"
+   }
+   Comportamiento:
+   - Si activo=true → pone activo=false (desactiva)
+   - Si activo=false → pone activo=true (reactiva)
+   - Es BIDIRECCIONAL (toggle)
+   Errores:
+   - 401 Unauthorized: Sin token
+   - 403 Forbidden: No es SUPERADMIN
+   - 404 Not Found: Usuario no existe
+   - 500 Internal Server Error: Error BD
+
+HEALTH CHECK:
+───────────────────────────────────────────────────────────────────────────────
+
+GET /health
+  Autenticación: ✅ JWT (user genérico)
+  Salida: { "status": "ok" }
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 7: TECNOLOGÍA STACK
+═══════════════════════════════════════════════════════════════════════════════
+
+BACKEND:
+
+- Python 3.8+
+- FastAPI 0.116.0+ (framework web)
+- Uvicorn 0.35.0+ (servidor ASGI)
+- Pydantic (validación de datos)
+- psycopg2-binary 2.9.10+ (driver PostgreSQL)
+- passlib[bcrypt] 1.7.4+ (hash de contraseñas)
+- bcrypt 4.0.1 (librería de hashing)
+- python-jose 3.3.0+ (JWT)
+- python-dotenv 1.0.1+ (variables de entorno)
+- python-multipart 0.0.20+ (parsing de formularios)
+
+BASE DE DATOS:
+
+- PostgreSQL 12+ (base de datos)
+- Schema: gesdoc
+- Usuario: medarch_user
+- Base de datos: medarch_db
+
+FRONTEND:
+
+- HTML5
+- JavaScript (vanilla o framework)
+- Bootstrap 5 (UI framework)
+- Estado: No implementado aún
+
+OCR:
+
+- Tesseract
+- Estado: No implementado aún
+
+WATCHER:
+
+- Python + watchdog
+- Estado: No implementado aún
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 8: FLUJO DE TRABAJO ACTUAL
+═══════════════════════════════════════════════════════════════════════════════
+
+FASE 1: INGESTA DE DOCUMENTOS (No implementado)
+
+1. Usuario escanea PDF → C:\Escaneos\PENDIENTES
+2. Watcher detecta nuevo archivo
+3. Watcher crea registro en gesdoc.documentos:
+   - estado = 'PENDIENTE'
+   - ruta_temporal = C:\Escaneos\PENDIENTES\archivo.pdf
+   - nombre_archivo_original = archivo.pdf
+   - fecha_carga = NOW()
+4. Watcher ejecuta OCR sobre PDF
+5. OCR extrae sugerencias: cédula, tipo, fecha
+
+FASE 2: VALIDACIÓN MANUAL (No implementado)
+
+6. Frontend muestra documento en estado PENDIENTE
+7. Usuario revisa OCR (cédula, tipo, fecha sugeridos)
+8. Usuario VALIDA O RECHAZA cada sugerencia
+9. Usuario completa:
+   - id_paciente (seleccionar o crear)
+   - id_tipo (seleccionar)
+   - fecha (validar)
+   - consecutivo (auto o manual)
+
+FASE 3: PROCESAMIENTO (No implementado)
+
+10. Sistema valida no duplicado: UNIQUE (id_paciente, id_tipo, fecha, consecutivo)
+11. Sistema genera nombre:
+    TIPO_CEDULA_FECHA_CONSECUTIVO.pdf
+    Ejemplo: HC_24909345_2014-12-01_001.pdf
+12. Sistema mueve archivo a NAS:
+    /NAS/MEDARCH/24909345/HC/HC_24909345_2014-12-01_001.pdf
+13. Sistema actualiza gesdoc.documentos:
+    - estado = 'PROCESADO'
+    - nombre_archivo = generado
+    - ruta_archivo = ruta_NAS
+    - fecha_procesado = NOW()
+    - id_paciente = validado
+    - id_tipo = validado
+    - fecha = validado
+    - consecutivo = validado
+14. Sistema mueve archivo local a C:\Escaneos\PROCESADOS
+15. Sistema registra en log_auditoria
+
+FASE 4: GESTIÓN DE USUARIOS (Implementado)
+
+✅ Crear usuario
+✅ Listar usuarios
+✅ Obtener usuario por ID
+✅ Actualizar usuario
+✅ Cambiar contraseña
+✅ Activar/desactivar usuario (toggle)
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 9: SEGURIDAD Y VALIDACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+AUTENTICACIÓN:
+
+✅ JWT (JSON Web Tokens)
+  - Generado en login
+  - Expira en 1 hora (configurable)
+  - Contiene: id_usuario, usuario, rol
+  - Algoritmo: HS256
+  - Clave secreta: FROM .env (SECRET_KEY)
+
+✅ Validación de Token:
+  - Cada request protegido valida JWT
+  - Si inválido o expirado → 401 Unauthorized
+  - Si usuario inactivo → 401 Unauthorized
+
+AUTORIZACIÓN:
+
+✅ Control de roles:
+  - CONSULTA: Lectura de documentos
+  - ARCHIVO: CRUD documentos, validación
+  - SUPERADMIN: Gestión usuarios + acceso total
+
+✅ Dependencias en FastAPI:
+  - require_role("SUPERADMIN"): Validar rol específico
+  - get_current_user(): Validar JWT + usuario activo
+
+VALIDACIÓN DE DATOS:
+
+✅ Pydantic BaseModel:
+  - Tipos tipados (int, str, bool, datetime)
+  - Longitud mínima/máxima
+  - Valores permitidos (Literal)
+  - Conversiones automáticas
+
+CONTRASEÑAS:
+
+✅ Hash con bcrypt:
+  - Mínimo 8 caracteres
+  - Rounds automáticos (12 por defecto)
+  - Verificación con verify_password()
+
+✅ Nunca retornar:
+  - password_hash en respuestas
+  - Contraseña en logs
+  - Credenciales en URLs
+
+BASE DE DATOS:
+
+✅ SQL Parametrizado:
+  - Previene SQL injection
+  - cur.execute(query, params)
+  - Parámetros con %s
+
+✅ Transacciones:
+  - Auto-commit en éxito
+  - Auto-rollback en error
+  - Contexto manager: with get_db_cursor()
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 10: CONFIGURACIÓN Y VARIABLES DE ENTORNO
+═══════════════════════════════════════════════════════════════════════════════
+
+Archivo: backend/app/.env
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=medarch_db
+DB_USER=medarch_user
+DB_PASSWORD=Medarch123*
+
+SECRET_KEY=tu-clave-secreta-muy-larga-y-compleja-cambiar-en-produccion
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+NOTAS:
+- Cambiar SECRET_KEY en producción (generar con secrets.token_urlsafe(32))
+- Cambiar DB_PASSWORD si tienes credenciales diferentes
+- ACCESS_TOKEN_EXPIRE_MINUTES es configurable
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 11: INSTALACIÓN Y EJECUCIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+1. PREPARAR BASE DE DATOS:
+
+   psql -U postgres -f database/bd.sql
+
+2. INSTALAR DEPENDENCIAS:
+
+   cd backend
+   pip install -r requirements.txt
+
+3. CONFIGURAR VARIABLES:
+
+   backend/app/.env
+   (Llenar con credenciales correctas)
+
+4. EJECUTAR SERVIDOR:
+
+   cd backend
+   python main.py
+
+   O con uvicorn:
+
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+5. ACCEDER A DOCUMENTACIÓN:
+
+   http://localhost:8000/docs (Swagger)
+   http://localhost:8000/redoc (ReDoc)
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 12: ESTADO ACTUAL DEL DESARROLLO
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ COMPLETADO:
+
+- ✅ Autenticación JWT
+- ✅ CRUD completo de usuarios
+- ✅ Control de roles (SUPERADMIN)
+- ✅ Validación Pydantic
+- ✅ Hash bcrypt
+- ✅ BD PostgreSQL integrada
+- ✅ Transacciones de BD
+- ✅ Toggle bidireccional de estado usuario
+
+❌ NO IMPLEMENTADO:
+
+- ❌ Frontend de validación
+- ❌ Watcher de ingesta
+- ❌ OCR (Tesseract)
+- ❌ CRUD de documentos
+- ❌ Endpoints de documentos
+- ❌ Auditoría en log_auditoria
+- ❌ Scripts de limpieza
+- ❌ Endpoint de búsqueda/filtrado
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 13: PRÓXIMOS PASOS SUGERIDOS
+═══════════════════════════════════════════════════════════════════════════════
+
+CORTO PLAZO (1-2 semanas):
+
+1. Implementar CRUD de documentos:
+   - POST /documents (crear documento - desde watcher)
+   - GET /documents (listar)
+   - GET /documents/{id} (obtener)
+   - PUT /documents/{id} (actualizar con validación OCR)
+   - Cambiar estado: PENDIENTE → EN_REVISION → PROCESADO
+
+2. Implementar OCR mock:
+   - Endpoint que extrae sugerencias de PDF
+   - Simular Tesseract
+   - Retornar: cédula_sugerida, tipo_sugerido, fecha_sugerida
+
+3. Implementar Watcher básico:
+   - Monitorear C:\Escaneos\PENDIENTES
+   - Detectar PDFs nuevos
+   - Crear registros en BD
+
+MEDIANO PLAZO (2-4 semanas):
+
+4. Frontend básico:
+   - Formulario de login
+   - Listado de documentos pendientes
+   - Validación OCR
+   - Guardar clasificación
+
+5. Auditoría:
+   - Insertar acciones en log_auditoria
+   - Quién, qué, cuándo para cada operación
+
+LARGO PLAZO (1-2 meses):
+
+6. Búsqueda y filtrado:
+   - GET /documents/search?cedula=...&tipo=...&fecha=...
+   - Índices en BD
+
+7. Reportes:
+   - Documentos procesados por período
+   - Documentos por tipo
+   - Documentos por paciente
+
+8. Integración OCR real:
+   - Tesseract
+   - AWS Textract
+   - Google Vision API
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 14: ARCHIVOS DE DOCUMENTACIÓN GENERADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+backend/
+
+📖 INICIO_AQUI.md              → Punto de entrada rápido
+📖 README_DIAGNOSTICO.md       → Resumen ejecutivo
+📖 DIAGNOSTICO_CONSOLA.md      → Guía de diagnóstico
+📖 ERRORES_DIAGNOSTICO.md      → Análisis técnico de errores
+📖 CORRECCIONES_APLICADAS.md   → Cambios línea por línea
+📖 RESUMEN_DIAGNOSTICO.txt     → Resumen en texto plano
+📖 CRUD_USUARIOS.md            → Documentación endpoints
+📖 README_USUARIOS.md          → Quick start
+📖 IMPLEMENTACION_CRUD.md      → Detalles técnicos
+📖 PROBLEMA_SOLUCIONADO.md     → Fix de main.py
+📖 CAMBIO_DELETE_TOGGLE.md     → Toggle de estado
+📖 RESUMEN_FINAL_CRUD.md       → Estado final del módulo
+📖 AUTH_USERS_CONTEXT.md       → Contexto autenticación
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 15: COMANDOS ÚTILES
+═══════════════════════════════════════════════════════════════════════════════
+
+DESARROLLO LOCAL:
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Ejecutar servidor con reload
+python main.py
+uvicorn app.main:app --reload
+
+# Ver logs
+# La consola mostrará todas las peticiones y errores
+
+VALIDAR CÓDIGO:
+
+# Compilar archivos (verificar sintaxis)
+python -m py_compile app/api/routes/users.py
+python -m py_compile app/services/user_service.py
+
+# Verificar imports
+python -c "from app.api.routes.users import router; print('OK')"
+
+BASE DE DATOS:
+
+# Conectar a BD
+psql -U medarch_user -d medarch_db
+
+# Ver usuarios
+SELECT * FROM gesdoc.usuarios;
+
+# Ver estructura de tabla
+\d gesdoc.usuarios
+
+# Limpiar constraints duplicados
+ALTER TABLE gesdoc.usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check CASCADE;
+ALTER TABLE gesdoc.usuarios ADD CONSTRAINT usuarios_rol_check 
+  CHECK (rol IN ('CONSULTA', 'ARCHIVO', 'SUPERADMIN'));
+
+TESTING (Ejemplos curl):
+
+# Crear usuario
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"usuario":"user1","nombre":"User One","password":"Pass@12345","rol":"ARCHIVO"}'
+
+# Login
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"usuario":"user1","password":"Pass@12345"}'
+
+# Listar usuarios
+curl -X GET http://localhost:8000/users \
+  -H "Authorization: Bearer <token>"
+
+# Toggle estado
+curl -X DELETE http://localhost:8000/users/2 \
+  -H "Authorization: Bearer <token>"
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 16: RESTRICCIONES Y LIMITACIONES CONOCIDAS
+═══════════════════════════════════════════════════════════════════════════════
+
+ACTUAL:
+
+1. Solo CRUD de usuarios implementado
+2. No hay documentos en el sistema aún
+3. OCR no implementado
+4. Frontend no implementado
+5. Watcher no implementado
+
+TÉCNICAS:
+
+1. Python 3.8+ obligatorio (compatible con type hints modernos)
+2. PostgreSQL 12+ requerido
+3. JWT expira en 1 hora (no hay refresh tokens)
+4. No hay rate limiting implementado
+5. No hay cache implementado
+6. Logs van solo a consola (no a archivo)
+
+SEGURIDAD:
+
+1. SECRET_KEY es fija en .env (cambiar en producción)
+2. Contraseñas mínimo 8 caracteres (configurable)
+3. No hay recuperación de contraseña
+4. No hay 2FA
+5. No hay auditoría de fallidos de login
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 17: REFERENCIA RÁPIDA DE ROLES Y PERMISOS
+═══════════════════════════════════════════════════════════════════════════════
+
+CONSULTA
+├─ Leer documentos: ✅
+├─ Crear documentos: ❌
+├─ Validar OCR: ❌
+├─ Gestionar usuarios: ❌
+└─ Admin: ❌
+
+ARCHIVO
+├─ Leer documentos: ✅
+├─ Crear documentos: ✅
+├─ Validar OCR: ✅
+├─ Gestionar usuarios: ❌
+└─ Admin: ❌
+
+SUPERADMIN
+├─ Leer documentos: ✅
+├─ Crear documentos: ✅
+├─ Validar OCR: ✅
+├─ Gestionar usuarios: ✅
+└─ Admin: ✅
+
+═══════════════════════════════════════════════════════════════════════════════
+FIN DE CONTEXTO COMPLETO
+═══════════════════════════════════════════════════════════════════════════════
+
+Este documento contiene toda la información necesaria para que ChatGPT entienda
+el proyecto MEDARCH. Incluye:
+
+✅ Descripción general del proyecto
+✅ Arquitectura del sistema
+✅ Schema de base de datos
+✅ Reglas de negocio
+✅ Endpoints implementados
+✅ Stack tecnológico
+✅ Flujo de trabajo
+✅ Seguridad y validación
+✅ Configuración
+✅ Estado actual
+✅ Próximos pasos
+✅ Comandos útiles
+✅ Limitaciones conocidas
+✅ Permisos y roles
+
+Genera con este contexto más funcionalidades sin perder consistencia con
+lo que ya existe.
+
+═══════════════════════════════════════════════════════════════════════════════
