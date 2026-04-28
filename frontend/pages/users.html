@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>MEDARCH | Usuarios</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+	<div class="medarch-shell">
+		<nav class="navbar navbar-expand-lg medarch-navbar sticky-top">
+			<div class="container py-1">
+				<a class="navbar-brand medarch-brand" href="./dashboard.html">MEDARCH</a>
+				<div class="ms-auto d-flex gap-2">
+					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./dashboard.html">Dashboard</a>
+						<button id="newUserButton" type="button" class="btn btn-primary medarch-btn medarch-btn-primary">Nuevo usuario</button>
+					<button id="logoutButton" class="btn btn-outline-secondary medarch-btn medarch-btn-outline" type="button">Cerrar sesión</button>
+				</div>
+			</div>
+		</nav>
+
+		<main class="container py-4 py-md-5">
+			<div id="usersMessage" class="mb-4"></div>
+
+				<section class="medarch-card medarch-section medarch-fade-in">
+					<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+						<div>
+							<p class="small text-uppercase medarch-muted mb-1">Módulo de usuarios</p>
+							<h1 class="h4 mb-0 medarch-title">Tabla de usuarios</h1>
+						</div>
+						<div class="d-flex align-items-center gap-2">
+							<button id="refreshUsers" type="button" class="btn btn-sm btn-outline-primary medarch-btn medarch-btn-outline">Actualizar lista</button>
+						</div>
+					</div>
+					<div class="table-responsive">
+						<table class="table align-middle medarch-table mb-0">
+							<thead>
+								<tr>
+									<th>Usuario</th>
+									<th>Nombre</th>
+									<th>Rol</th>
+									<th>Estado</th>
+									<th>Creación</th>
+									<th class="text-end">Acciones</th>
+								</tr>
+							</thead>
+							<tbody id="usersTableBody"></tbody>
+						</table>
+					</div>
+					<div id="usersEmptyState" class="medarch-empty d-none mt-3">No hay usuarios para mostrar.</div>
+				</section>
+		</main>
+	</div>
+
+		<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-lg modal-dialog-centered">
+				<div class="modal-content medarch-card border-0">
+					<div class="modal-header">
+						<div>
+							<p class="small text-uppercase medarch-muted mb-1">Usuario</p>
+							<h2 class="modal-title h5 mb-0" id="userModalLabel">Crear usuario</h2>
+						</div>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+					</div>
+					<div class="modal-body">
+						<form id="userForm" novalidate>
+							<input type="hidden" id="currentUserId" name="currentUserId" value="">
+							<div class="mb-3">
+								<label class="form-label medarch-form-label" for="userUsuario">Usuario</label>
+								<input id="userUsuario" name="usuario" type="text" class="form-control medarch-input" placeholder="usuario" autocomplete="off" required>
+							</div>
+							<div class="mb-3">
+								<label class="form-label medarch-form-label" for="userNombre">Nombre completo</label>
+								<input id="userNombre" name="nombre" type="text" class="form-control medarch-input" placeholder="Nombre del usuario" required>
+							</div>
+							<div class="mb-3">
+								<label class="form-label medarch-form-label" for="userPassword">Contraseña</label>
+								<input id="userPassword" name="password" type="password" class="form-control medarch-input" placeholder="Mínimo 8 caracteres" required>
+								<div class="medarch-help mt-2">En edición se deshabilita este campo; usa el botón de clave para cambiarla.</div>
+							</div>
+							<div class="row g-3">
+								<div class="col-md-8">
+									<label class="form-label medarch-form-label" for="userRol">Rol</label>
+									<select id="userRol" name="rol" class="form-select medarch-select" required>
+										<option value="SUPERADMIN">SUPERADMIN</option>
+										<option value="ARCHIVO">ARCHIVO</option>
+										<option value="CONSULTA">CONSULTA</option>
+									</select>
+								</div>
+								<div class="col-md-4 d-flex align-items-end">
+									<div class="form-check form-switch">
+										<input class="form-check-input" type="checkbox" role="switch" id="userActivo" name="activo" checked>
+										<label class="form-check-label medarch-form-label" for="userActivo">Activo</label>
+									</div>
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-outline-secondary medarch-btn medarch-btn-outline" data-bs-dismiss="modal">Cancelar</button>
+						<button id="submitUserButton" type="submit" form="userForm" class="btn medarch-btn medarch-btn-primary">Guardar usuario</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content medarch-card border-0">
+					<div class="modal-header">
+						<div>
+							<p class="small text-uppercase medarch-muted mb-1">Seguridad</p>
+							<h2 class="modal-title h5 mb-0" id="passwordModalLabel">Cambiar contraseña</h2>
+						</div>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+					</div>
+					<div class="modal-body">
+						<form id="passwordForm" novalidate>
+							<input type="hidden" id="passwordUserId" name="passwordUserId" value="">
+							<div class="mb-3">
+								<label class="form-label medarch-form-label">Usuario seleccionado</label>
+								<div id="passwordUserLabel" class="medarch-help">Ninguno</div>
+							</div>
+							<div class="mb-3">
+								<label class="form-label medarch-form-label" for="newPassword">Nueva contraseña</label>
+								<input id="newPassword" name="newPassword" type="password" class="form-control medarch-input" placeholder="Mínimo 8 caracteres" required>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-outline-secondary medarch-btn medarch-btn-outline" data-bs-dismiss="modal">Cancelar</button>
+						<button id="passwordSubmitButton" type="submit" form="passwordForm" class="btn medarch-btn medarch-btn-primary">Actualizar contraseña</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+		<script type="module" src="../js/users.js"></script>
+</body>
+</html>

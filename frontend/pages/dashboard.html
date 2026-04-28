@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>MEDARCH | Dashboard</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+	<div class="medarch-shell">
+		<nav class="navbar navbar-expand-lg medarch-navbar sticky-top">
+			<div class="container py-1">
+				<a class="navbar-brand medarch-brand" href="./dashboard.html">MEDARCH</a>
+				<div class="ms-auto d-flex gap-2">
+					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./users.html">Usuarios</a>
+					<button id="logoutButton" class="btn btn-outline-secondary medarch-btn medarch-btn-outline" type="button">Cerrar sesión</button>
+				</div>
+			</div>
+		</nav>
+
+		<main class="container py-4 py-md-5">
+			<section class="medarch-hero p-4 p-md-5 mb-4">
+				<div class="row align-items-center g-4">
+					<div class="col-lg-8">
+						<p class="text-uppercase small opacity-75 mb-2">Panel inicial</p>
+						<h1 class="display-6 fw-semibold mb-3">Validación de API para login y usuarios</h1>
+						<p class="lead mb-0 opacity-75">Desde aquí puedes saltar al formulario de usuarios para probar alta, edición, cambio de estado y contraseña con la API de FastAPI.</p>
+					</div>
+					<div class="col-lg-4 text-lg-end">
+						<a class="btn btn-light btn-lg medarch-btn" href="./users.html">Abrir CRUD de usuarios</a>
+					</div>
+				</div>
+			</section>
+
+			<div class="row g-4">
+				<div class="col-md-4">
+					<div class="medarch-card medarch-section h-100">
+						<h2 class="h5 medarch-title">Login</h2>
+						<p class="medarch-muted mb-0">Formulario conectado a <strong>/auth/login</strong> con token guardado en <strong>localStorage</strong>.</p>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="medarch-card medarch-section h-100">
+						<h2 class="h5 medarch-title">CRUD</h2>
+						<p class="medarch-muted mb-0">Listado, creación, edición, cambio de estado y cambio de contraseña para usuarios.</p>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="medarch-card medarch-section h-100">
+						<h2 class="h5 medarch-title">API</h2>
+						<p class="medarch-muted mb-0">Consumo centralizado con <strong>fetch</strong>, manejo de errores HTTP y envío del token en requests protegidos.</p>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+
+	<script type="module" src="../js/dashboard.js"></script>
+</body>
+</html>

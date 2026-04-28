@@ -63,6 +63,6 @@ def change_password_endpoint(
 @router.delete("/{id_usuario}", response_model=Dict[str, str])
 def toggle_user_status_endpoint(
 	id_usuario: int,
-	_: Dict[str, Any] = Depends(require_role("SUPERADMIN")),
+	current_user: Dict[str, Any] = Depends(require_role("SUPERADMIN")),
 ) -> Dict[str, str]:
-	return toggle_user_status(id_usuario)
+	return toggle_user_status(id_usuario, current_user)

@@ -1,0 +1,226 @@
+:root {
+	--medarch-primary: #1f3a5f;
+	--medarch-secondary: #4a90e2;
+	--medarch-bg: #f4f6f8;
+	--medarch-text: #2c3e50;
+	--medarch-error: #e74c3c;
+	--medarch-success: #1f7a4f;
+	--medarch-card: #ffffff;
+	--medarch-border: #dbe3ea;
+	--medarch-shadow: 0 18px 40px rgba(31, 58, 95, 0.12);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	min-height: 100%;
+}
+
+body {
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	background:
+		radial-gradient(circle at top left, rgba(74, 144, 226, 0.14), transparent 35%),
+		linear-gradient(180deg, #f8fafc 0%, var(--medarch-bg) 100%);
+	color: var(--medarch-text);
+}
+
+.medarch-shell {
+	min-height: 100vh;
+}
+
+.medarch-brand {
+	color: var(--medarch-primary);
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.medarch-navbar {
+	background: rgba(255, 255, 255, 0.88);
+	backdrop-filter: blur(12px);
+	border-bottom: 1px solid rgba(219, 227, 234, 0.9);
+}
+
+.medarch-card {
+	background: var(--medarch-card);
+	border: 1px solid rgba(219, 227, 234, 0.9);
+	border-radius: 1.25rem;
+	box-shadow: var(--medarch-shadow);
+}
+
+.medarch-login-panel {
+	max-width: 460px;
+	width: 100%;
+	margin: 0 auto;
+}
+
+.medarch-hero {
+	background: linear-gradient(135deg, rgba(31, 58, 95, 0.96), rgba(74, 144, 226, 0.92));
+	color: #fff;
+	border-radius: 1.5rem;
+	box-shadow: var(--medarch-shadow);
+}
+
+.medarch-title {
+	color: var(--medarch-primary);
+	font-weight: 700;
+}
+
+.medarch-muted {
+	color: #6b7a8c;
+}
+
+.medarch-form-label {
+	font-weight: 600;
+}
+
+.medarch-input,
+.medarch-select,
+.medarch-textarea {
+	border-radius: 0.9rem;
+	border: 1px solid var(--medarch-border);
+	padding: 0.85rem 1rem;
+	box-shadow: none;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.medarch-input:focus,
+.medarch-select:focus,
+.medarch-textarea:focus {
+	border-color: var(--medarch-secondary);
+	box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.15);
+}
+
+.medarch-btn {
+	border-radius: 0.9rem;
+	font-weight: 600;
+	padding: 0.8rem 1.1rem;
+}
+
+.medarch-btn-primary {
+	background: linear-gradient(135deg, var(--medarch-primary), var(--medarch-secondary));
+	border: 0;
+	color: #fff;
+}
+
+.medarch-btn-primary:hover,
+.medarch-btn-primary:focus {
+	color: #fff;
+	transform: translateY(-1px);
+}
+
+.medarch-btn-outline {
+	border-color: var(--medarch-border);
+	color: var(--medarch-text);
+}
+
+.medarch-btn-outline:hover {
+	background: rgba(74, 144, 226, 0.08);
+	border-color: rgba(74, 144, 226, 0.3);
+}
+
+.medarch-table {
+	border-color: rgba(219, 227, 234, 0.9);
+}
+
+.medarch-table thead th {
+	background: #f8fbff;
+	color: var(--medarch-primary);
+	font-size: 0.9rem;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	border-bottom: 1px solid rgba(219, 227, 234, 0.9);
+}
+
+.medarch-badge {
+	border-radius: 999px;
+	font-weight: 600;
+	padding: 0.45rem 0.75rem;
+}
+
+.medarch-badge-active {
+	background: rgba(31, 122, 79, 0.12);
+	color: var(--medarch-success);
+}
+
+.medarch-badge-inactive {
+	background: rgba(231, 76, 60, 0.1);
+	color: var(--medarch-error);
+}
+
+.medarch-fade-in {
+	animation: medarchFadeIn 0.35s ease both;
+}
+
+@keyframes medarchFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.medarch-help {
+	font-size: 0.92rem;
+	color: #6b7a8c;
+}
+
+.medarch-section {
+	padding: 1.25rem;
+}
+
+.medarch-loader {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.medarch-empty {
+	border: 1px dashed rgba(107, 122, 140, 0.35);
+	border-radius: 1rem;
+	padding: 1.5rem;
+	text-align: center;
+	color: #6b7a8c;
+}
+
+.medarch-mark {
+	width: 3rem;
+	height: 3rem;
+	border-radius: 999px;
+	background: #fff;
+	color: var(--medarch-primary);
+	font-weight: 700;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.medarch-nav-link {
+	font-weight: 600;
+	color: var(--medarch-text);
+}
+
+.medarch-nav-link.active,
+.medarch-nav-link:hover {
+	color: var(--medarch-primary);
+}
+
+.medarch-form-feedback {
+	min-height: 1.25rem;
+	font-size: 0.92rem;
+}
+
+@media (max-width: 768px) {
+	.medarch-section {
+		padding: 1rem;
+	}
+
+	.medarch-hero {
+		border-radius: 1rem;
+	}
+}

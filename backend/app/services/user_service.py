@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from fastapi import HTTPException, status
 
@@ -182,7 +182,13 @@ def change_password(id_usuario: int, payload: UserPasswordChangeRequest) -> Dict
 	return {"message": "Contraseña actualizada correctamente"}
 
 
-def toggle_user_status(id_usuario: int) -> Dict[str, str]:
+def toggle_user_status(id_usuario: int, current_user: dict[str, Any]) -> Dict[str, str]:
+	if int(current_user.get("id_usuario", 0)) == id_usuario:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="No puedes desactivar tu propio usuario",
+		)
+
 	try:
 		with get_db_cursor(dict_cursor=True) as (_, cur):
 			# Obtener estado actual
