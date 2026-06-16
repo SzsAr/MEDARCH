@@ -1,5 +1,42 @@
 from contextlib import contextmanager
+import os
+from pathlib import Path
 from typing import Generator
+
+
+def configure_postgres_dll_search_path() -> None:
+    if os.name != "nt":
+        return
+
+    candidate_paths = []
+    env_bin = os.getenv("MEDARCH_PG_BIN")
+    if env_bin:
+        candidate_paths.append(env_bin)
+
+    candidate_paths.extend(
+        [
+            r"C:\Program Files\PostgreSQL\18\bin",
+            r"C:\Program Files\PostgreSQL\17\bin",
+            r"C:\Program Files\PostgreSQL\16\bin",
+            r"C:\Program Files\PostgreSQL\15\bin",
+            r"C:\Program Files\PostgreSQL\14\bin",
+        ]
+    )
+
+    for candidate in candidate_paths:
+        dll_path = Path(candidate) / "libpq.dll"
+        if not dll_path.exists():
+            continue
+
+        os.environ["PATH"] = f"{candidate};{os.environ.get('PATH', '')}"
+        try:
+            os.add_dll_directory(candidate)
+        except (AttributeError, FileNotFoundError, OSError):
+            pass
+        break
+
+
+configure_postgres_dll_search_path()
 
 import psycopg2
 from psycopg2.extras import RealDictCursor

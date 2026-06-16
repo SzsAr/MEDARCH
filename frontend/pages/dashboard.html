@@ -13,7 +13,9 @@
 			<div class="container py-1">
 				<a class="navbar-brand medarch-brand" href="./dashboard.html">MEDARCH</a>
 				<div class="ms-auto d-flex gap-2">
+					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./tipos_documento.html">Tipos de documento</a>
 					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./users.html">Usuarios</a>
+					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./documentos.html">Documentos</a>
 					<button id="logoutButton" class="btn btn-outline-secondary medarch-btn medarch-btn-outline" type="button">Cerrar sesión</button>
 				</div>
 			</div>
@@ -24,11 +26,15 @@
 				<div class="row align-items-center g-4">
 					<div class="col-lg-8">
 						<p class="text-uppercase small opacity-75 mb-2">Panel inicial</p>
-						<h1 class="display-6 fw-semibold mb-3">Validación de API para login y usuarios</h1>
-						<p class="lead mb-0 opacity-75">Desde aquí puedes saltar al formulario de usuarios para probar alta, edición, cambio de estado y contraseña con la API de FastAPI.</p>
+						<h1 class="display-6 fw-semibold mb-3">Validación de API para login, usuarios y documentos</h1>
+						<p class="lead mb-0 opacity-75">Desde aquí puedes saltar al CRUD de usuarios y al módulo de documentos para revisar bandeja, validación y procesamiento con FastAPI.</p>
 					</div>
 					<div class="col-lg-4 text-lg-end">
-						<a class="btn btn-light btn-lg medarch-btn" href="./users.html">Abrir CRUD de usuarios</a>
+						<div class="d-grid gap-2 d-lg-flex justify-content-lg-end">
+							<a class="btn btn-outline-light btn-lg medarch-btn" href="./tipos_documento.html">Abrir tipos de documento</a>
+							<a class="btn btn-light btn-lg medarch-btn" href="./users.html">Abrir CRUD de usuarios</a>
+							<a class="btn btn-outline-light btn-lg medarch-btn" href="./documentos.html">Abrir documentos</a>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -42,6 +48,12 @@
 				</div>
 				<div class="col-md-4">
 					<div class="medarch-card medarch-section h-100">
+						<h2 class="h5 medarch-title">Tipos de documento</h2>
+						<p class="medarch-muted mb-0">Catálogo maestro para clasificar documentos y controlar su uso en revisión y procesamiento.</p>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="medarch-card medarch-section h-100">
 						<h2 class="h5 medarch-title">CRUD</h2>
 						<p class="medarch-muted mb-0">Listado, creación, edición, cambio de estado y cambio de contraseña para usuarios.</p>
 					</div>
@@ -50,6 +62,12 @@
 					<div class="medarch-card medarch-section h-100">
 						<h2 class="h5 medarch-title">API</h2>
 						<p class="medarch-muted mb-0">Consumo centralizado con <strong>fetch</strong>, manejo de errores HTTP y envío del token en requests protegidos.</p>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="medarch-card medarch-section h-100">
+						<h2 class="h5 medarch-title">Documentos</h2>
+						<p class="medarch-muted mb-0">Bandeja de pendientes, revisión manual, registro de error y salida final a NAS con auditoría.</p>
 					</div>
 				</div>
 			</div>

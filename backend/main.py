@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.documents import router as documents_router
 from app.api.routes.users import router as users_router
 from app.core.security import get_current_user
 
@@ -23,6 +24,9 @@ app.add_middleware(
 
 # Auth endpoint - sin autenticación
 app.include_router(auth_router)
+
+# Documentos - rutas protegidas por autenticación en cada endpoint
+app.include_router(documents_router, tags=["Documents"])
 
 # POST /users - sin autenticación (crear usuario)
 # Solo POST es público, el resto requiere autenticación

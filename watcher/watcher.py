@@ -8,11 +8,48 @@ from pathlib import Path
 from threading import Event
 from typing import Optional
 
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from watchdog.observers import Observer
+
+
+def configure_postgres_dll_search_path() -> None:
+    if os.name != "nt":
+        return
+
+    candidate_paths = []
+    env_bin = os.getenv("MEDARCH_PG_BIN")
+    if env_bin:
+        candidate_paths.append(env_bin)
+
+    candidate_paths.extend(
+        [
+            r"C:\Program Files\PostgreSQL\18\bin",
+            r"C:\Program Files\PostgreSQL\17\bin",
+            r"C:\Program Files\PostgreSQL\16\bin",
+            r"C:\Program Files\PostgreSQL\15\bin",
+            r"C:\Program Files\PostgreSQL\14\bin",
+        ]
+    )
+
+    for candidate in candidate_paths:
+        dll_path = Path(candidate) / "libpq.dll"
+        if not dll_path.exists():
+            continue
+
+        os.environ["PATH"] = f"{candidate};{os.environ.get('PATH', '')}"
+        try:
+            os.add_dll_directory(candidate)
+        except (AttributeError, FileNotFoundError, OSError):
+            pass
+        logging.info("Ruta de PostgreSQL registrada para DLL: %s", candidate)
+        break
+
+
+configure_postgres_dll_search_path()
+
 import psycopg2
 from psycopg2 import OperationalError
 from psycopg2.pool import SimpleConnectionPool
-from watchdog.events import FileSystemEvent, FileSystemEventHandler
-from watchdog.observers import Observer
 
 
 # ============================================
@@ -34,6 +71,8 @@ class Settings:
     db_max_conn: int = int(os.getenv("MEDARCH_DB_MAX_CONN", "5"))
 
     reconnect_wait_seconds: int = int(os.getenv("MEDARCH_RECONNECT_WAIT", "5"))
+
+
 
 
 # ============================================
@@ -133,7 +172,7 @@ class DatabaseClient:
                     logging.info("Registro duplicado omitido: %s", full_path)
                     return False
 
-                # Insertar documento
+                # Insertar documento en bandeja de pendientes.
                 cursor.execute(
                     """
                     INSERT INTO gesdoc.documentos (
@@ -145,7 +184,8 @@ class DatabaseClient:
                     (full_path, file_name),
                 )
                 conn.commit()
-                logging.info("Documento registrado: %s", full_path)
+
+                logging.info("Documento registrado en PENDIENTE: %s", full_path)
                 return True
 
         except OperationalError as exc:

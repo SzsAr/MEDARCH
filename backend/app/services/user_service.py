@@ -12,6 +12,25 @@ from app.schemas.user_schema import (
 )
 
 
+def _log_user_audit(
+	cur: Any,
+	id_usuario: int,
+	accion: str,
+	detalle: str,
+) -> None:
+	cur.execute(
+		"""
+		INSERT INTO gesdoc.log_auditoria (
+			id_usuario,
+			accion,
+			detalle
+		)
+		VALUES (%s, %s, %s)
+		""",
+		(id_usuario, accion, detalle),
+	)
+
+
 def create_user(payload: UserCreateRequest) -> UserResponse:
 	try:
 		with get_db_cursor(dict_cursor=True) as (_, cur):
@@ -47,6 +66,13 @@ def create_user(payload: UserCreateRequest) -> UserResponse:
 				),
 			)
 			created_user = cur.fetchone()
+			if created_user:
+				_log_user_audit(
+					cur,
+					int(created_user["id_usuario"]),
+					"CREAR_USUARIO",
+					f'Usuario creado: {created_user["usuario"]} ({created_user["rol"]})',
+				)
 	except HTTPException:
 		raise
 	except Exception as exc:
@@ -133,6 +159,13 @@ def update_user(id_usuario: int, payload: UserUpdateRequest) -> UserResponse:
 				(payload.nombre, payload.rol, payload.activo, id_usuario),
 			)
 			updated_user = cur.fetchone()
+			if updated_user:
+				_log_user_audit(
+					cur,
+					id_usuario,
+					"ACTUALIZAR_USUARIO",
+					f'Usuario actualizado: nombre={payload.nombre}, rol={payload.rol}, activo={payload.activo}',
+				)
 	except HTTPException:
 		raise
 	except Exception as exc:
@@ -171,6 +204,12 @@ def change_password(id_usuario: int, payload: UserPasswordChangeRequest) -> Dict
 				""",
 				(password_hash, id_usuario),
 			)
+			_log_user_audit(
+				cur,
+				id_usuario,
+				"CAMBIAR_PASSWORD",
+				"Contraseña actualizada",
+			)
 	except HTTPException:
 		raise
 	except Exception as exc:
@@ -182,7 +221,7 @@ def change_password(id_usuario: int, payload: UserPasswordChangeRequest) -> Dict
 	return {"message": "Contraseña actualizada correctamente"}
 
 
-def toggle_user_status(id_usuario: int, current_user: dict[str, Any]) -> Dict[str, str]:
+def toggle_user_status(id_usuario: int, current_user: Dict[str, Any]) -> Dict[str, str]:
 	if int(current_user.get("id_usuario", 0)) == id_usuario:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,
@@ -201,7 +240,7 @@ def toggle_user_status(id_usuario: int, current_user: dict[str, Any]) -> Dict[st
 				(id_usuario,),
 			)
 			user = cur.fetchone()
-			
+
 			if not user:
 				raise HTTPException(
 					status_code=status.HTTP_404_NOT_FOUND,
@@ -218,6 +257,12 @@ def toggle_user_status(id_usuario: int, current_user: dict[str, Any]) -> Dict[st
 				WHERE id_usuario = %s
 				""",
 				(nuevo_estado, id_usuario),
+			)
+			_log_user_audit(
+				cur,
+				int(current_user.get("id_usuario", 0)),
+				"TOGGLE_USUARIO",
+				f'Usuario {id_usuario} {"activado" if nuevo_estado else "desactivado"}',
 			)
 	except HTTPException:
 		raise

@@ -1,14 +1,17 @@
 # MEDARCH Frontend
 
-Frontend estático para el login y el CRUD de usuarios de MEDARCH.
+Frontend estático para el login, el CRUD de usuarios, el catálogo de tipos de documento y el módulo de documentos de MEDARCH.
 
 ## Estructura
 
 - `pages/login.html`: formulario de autenticación.
 - `pages/dashboard.html`: panel inicial después del login.
 - `pages/users.html`: lista y mantenimiento de usuarios.
+- `pages/tipos_documento.html`: catálogo maestro de tipos de documento.
+- `pages/documentos.html`: bandeja operativa de documentos.
 - `js/api.js`: capa reutilizable para consumir la API.
 - `js/auth.js`: flujo de login.
+- `js/document_types.js`: CRUD de tipos de documento.
 - `js/users.js`: CRUD de usuarios.
 - `js/ui.js`: utilidades de interfaz y sesión.
 - `css/styles.css`: estilos personalizados.
@@ -28,7 +31,7 @@ python -m http.server 5500
 1. Abrir `http://127.0.0.1:5500/pages/login.html`.
 2. Iniciar sesión con `usuario` y `password`.
 3. El token se guarda en `localStorage`.
-4. El panel permite entrar al CRUD de usuarios.
+4. El panel permite entrar al CRUD de usuarios, al catálogo de tipos de documento y al módulo de documentos.
 
 ## Configuración
 
