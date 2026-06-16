@@ -1,4 +1,4 @@
-import { decodeJwtPayload, getJson, patchJson, postJson } from "./api.js";
+import { decodeJwtPayload, getJson, patchJson } from "./api.js";
 import { ensureSession, escapeHtml, formatDateTime, logout, setButtonLoading, setMessage } from "./ui.js";
 
 const currentUserPayload = decodeJwtPayload();
@@ -14,7 +14,6 @@ const state = {
 const documentsMessage = document.querySelector("#documentsMessage");
 const refreshDocumentsButton = document.querySelector("#refreshDocuments");
 const viewErrorsButton = document.querySelector("#viewErrorsButton");
-const newPatientButton = document.querySelector("#newPatientButton");
 const logoutButton = document.querySelector("#logoutButton");
 const documentsFilterForm = document.querySelector("#documentsFilterForm");
 const filterQuery = document.querySelector("#filterQuery");
@@ -23,14 +22,9 @@ const filterFechaHasta = document.querySelector("#filterFechaHasta");
 const resetFiltersButton = document.querySelector("#resetFiltersButton");
 const pendingDocumentsTableBody = document.querySelector("#pendingDocumentsTableBody");
 const pendingDocumentsEmptyState = document.querySelector("#pendingDocumentsEmptyState");
-const processedDocumentsTableBody = document.querySelector("#processedDocumentsTableBody");
-const processedDocumentsEmptyState = document.querySelector("#processedDocumentsEmptyState");
 const kpiPending = document.querySelector("#kpiPending");
 const kpiReview = document.querySelector("#kpiReview");
-const kpiProcessed = document.querySelector("#kpiProcessed");
 const kpiError = document.querySelector("#kpiError");
-const pendingTabCount = document.querySelector("#pendingTabCount");
-const processedTabCount = document.querySelector("#processedTabCount");
 const selectedDocumentEmpty = document.querySelector("#selectedDocumentEmpty");
 const selectedDocumentPanel = document.querySelector("#selectedDocumentPanel");
 const selectedDocumentEstado = document.querySelector("#selectedDocumentEstado");
@@ -49,25 +43,19 @@ const documentAuditEmpty = document.querySelector("#documentAuditEmpty");
 const documentAuditList = document.querySelector("#documentAuditList");
 
 const reviewConsecutiveDisplay = document.querySelector("#reviewConsecutiveDisplay");
-const processConsecutiveDisplay = document.querySelector("#processConsecutiveDisplay");
+const reviewPatientStatus = document.querySelector("#reviewPatientStatus");
 
 const reviewModalEl = document.querySelector("#documentReviewModal");
-const processModalEl = document.querySelector("#documentProcessModal");
 const errorModalEl = document.querySelector("#documentErrorModal");
 const errorDocumentsModalEl = document.querySelector("#documentErrorsModal");
-const patientModalEl = document.querySelector("#patientModal");
 
 const reviewForm = document.querySelector("#documentReviewForm");
-const processForm = document.querySelector("#documentProcessForm");
 const errorForm = document.querySelector("#documentErrorForm");
-const patientForm = document.querySelector("#patientForm");
 
 const reviewModalTitle = document.querySelector("#documentReviewModalLabel");
-const processModalTitle = document.querySelector("#documentProcessModalLabel");
 const errorModalTitle = document.querySelector("#documentErrorModalLabel");
 const errorDocumentsTableBody = document.querySelector("#errorDocumentsTableBody");
 const errorDocumentsEmptyState = document.querySelector("#errorDocumentsEmptyState");
-const patientModalTitle = document.querySelector("#patientModalLabel");
 
 const reviewDocumentIdInput = document.querySelector("#reviewDocumentId");
 const reviewPatientIdInput = document.querySelector("#reviewPatientId");
@@ -78,29 +66,13 @@ const reviewDateInput = document.querySelector("#reviewDate");
 const reviewConsecutiveInput = document.querySelector("#reviewConsecutive");
 const reviewSubmitButton = document.querySelector("#reviewSubmitButton");
 
-const processDocumentIdInput = document.querySelector("#processDocumentId");
-const processPatientSelect = document.querySelector("#processPatient");
-const processTypeSelect = document.querySelector("#processType");
-const processDateInput = document.querySelector("#processDate");
-const processConsecutiveInput = document.querySelector("#processConsecutive");
-const processRouteInput = document.querySelector("#processRoute");
-const processSubmitButton = document.querySelector("#processSubmitButton");
-
 const errorDocumentIdInput = document.querySelector("#errorDocumentId");
 const errorDetailInput = document.querySelector("#errorDetail");
 const errorSubmitButton = document.querySelector("#errorSubmitButton");
 
-const newPatientDocumentInput = document.querySelector("#newPatientDocument");
-const newPatientNameInput = document.querySelector("#newPatientName");
-const patientSubmitButton = document.querySelector("#patientSubmitButton");
-
 const reviewModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(reviewModalEl) : null;
-const processModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(processModalEl) : null;
 const errorModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(errorModalEl) : null;
 const errorDocumentsModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(errorDocumentsModalEl) : null;
-const patientModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(patientModalEl) : null;
-
-const NAS_ROOT = "\\\\192.168.100.4\\toshiba ext\\MEDARCH";
 
 function formatDateOnly(value) {
 	if (!value) {
@@ -154,58 +126,6 @@ function toDateInputValue(value) {
 	return dateValue.toISOString().slice(0, 10);
 }
 
-function padConsecutive(value) {
-	const numberValue = Number(value || 1);
-	if (Number.isNaN(numberValue) || numberValue < 1) {
-		return "001";
-	}
-
-	return String(numberValue).padStart(3, "0");
-}
-
-function getSelectedPatientData(selectElement) {
-	const option = selectElement?.selectedOptions?.[0];
-	return {
-		id: Number(selectElement?.value || 0),
-		numeroDocumento: option?.dataset?.numeroDocumento || "",
-		nombre: option?.textContent || "",
-	};
-}
-
-function getSelectedTypeData(selectElement) {
-	const option = selectElement?.selectedOptions?.[0];
-	return {
-		id: Number(selectElement?.value || 0),
-		codigo: option?.dataset?.codigo || "",
-		descripcion: option?.textContent || "",
-	};
-}
-
-function computeSuggestedRoute() {
-	const patient = getSelectedPatientData(processPatientSelect);
-	const type = getSelectedTypeData(processTypeSelect);
-	const fecha = processDateInput?.value || "";
-	const consecutivo = padConsecutive(processConsecutiveInput?.value);
-
-	if (!patient.numeroDocumento || !type.codigo || !fecha) {
-		return "";
-	}
-
-	const fileName = `${type.codigo}_${patient.numeroDocumento}_${fecha}_${consecutivo}.pdf`;
-	return `${NAS_ROOT}\\${patient.numeroDocumento}\\${type.codigo}\\${fileName}`;
-}
-
-function syncProcessRoute() {
-	if (!processRouteInput) {
-		return;
-	}
-
-	const suggestedRoute = computeSuggestedRoute();
-	if (suggestedRoute) {
-		processRouteInput.value = suggestedRoute;
-	}
-}
-
 function renderLookups() {
 	const patientOptions = state.patients.length
 		? state.patients.map((patient) => `
@@ -219,14 +139,8 @@ function renderLookups() {
 		`).join("")
 		: `<option value="">No hay tipos disponibles</option>`;
 
-	if (processPatientSelect) {
-		processPatientSelect.innerHTML = patientOptions;
-	}
 	if (reviewTypeSelect) {
 		reviewTypeSelect.innerHTML = typeOptions;
-	}
-	if (processTypeSelect) {
-		processTypeSelect.innerHTML = typeOptions;
 	}
 }
 
@@ -250,28 +164,17 @@ function renderKpis() {
 	if (kpiReview) {
 		kpiReview.textContent = String(counts.EN_REVISION);
 	}
-	if (kpiProcessed) {
-		kpiProcessed.textContent = String(counts.PROCESADO);
-	}
 	if (kpiError) {
 		kpiError.textContent = String(counts.ERROR);
-	}
-
-	if (pendingTabCount) {
-		pendingTabCount.textContent = String(counts.PENDIENTE + counts.EN_REVISION + counts.ERROR);
-	}
-	if (processedTabCount) {
-		processedTabCount.textContent = String(counts.PROCESADO);
 	}
 }
 
 function renderDocuments() {
-	if (!pendingDocumentsTableBody || !pendingDocumentsEmptyState || !processedDocumentsTableBody || !processedDocumentsEmptyState) {
+	if (!pendingDocumentsTableBody || !pendingDocumentsEmptyState) {
 		return;
 	}
 
 	const pendingDocuments = state.documents.filter((document) => document.estado !== "PROCESADO");
-	const processedDocuments = state.documents.filter((document) => document.estado === "PROCESADO");
 
 	if (!pendingDocuments.length) {
 		pendingDocumentsTableBody.innerHTML = "";
@@ -298,7 +201,7 @@ function renderDocuments() {
 			<td class="text-end">
 				<div class="btn-group btn-group-sm" role="group">
 					<button type="button" class="btn btn-outline-success" data-action="review" data-id="${document.id_documento}">Revisar</button>
-					<button type="button" class="btn btn-outline-primary" data-action="process" data-id="${document.id_documento}">Procesar</button>
+					<button type="button" class="btn btn-outline-primary" data-action="process" data-id="${document.id_documento}" ${canProcessDocument(document) ? "" : "disabled title=\"Primero guarda la revisión\""}>Procesar</button>
 					<button type="button" class="btn btn-outline-danger" data-action="error" data-id="${document.id_documento}">Error</button>
 				</div>
 			</td>
@@ -306,31 +209,14 @@ function renderDocuments() {
 		`).join("");
 	}
 
-	if (!processedDocuments.length) {
-		processedDocumentsTableBody.innerHTML = "";
-		processedDocumentsEmptyState.classList.remove("d-none");
-	} else {
-		processedDocumentsEmptyState.classList.add("d-none");
-		processedDocumentsTableBody.innerHTML = processedDocuments.map((document) => `
-			<tr>
-				<td class="fw-semibold">#${document.id_documento}</td>
-				<td>
-					<div class="fw-semibold text-break">${escapeHtml(document.nombre_archivo || document.nombre_archivo_original)}</div>
-					<div class="small medarch-muted text-break">${escapeHtml(document.nombre_archivo_original)}</div>
-				</td>
-				<td>
-					<div class="fw-semibold">${escapeHtml(document.paciente_numero_documento || "-")}</div>
-					<div class="small medarch-muted text-break">${escapeHtml(document.paciente_nombre || "Sin nombre")}</div>
-				</td>
-				<td>
-					<div class="fw-semibold">${escapeHtml(document.tipo_codigo || "-")}</div>
-					<div class="small medarch-muted text-break">${escapeHtml(document.tipo_descripcion || "Sin descripción")}</div>
-				</td>
-				<td class="text-break">${escapeHtml(document.ruta_archivo || "-")}</td>
-				<td>${formatDateTime(document.fecha_procesado)}</td>
-			</tr>
-		`).join("");
-	}
+}
+
+function canProcessDocument(document) {
+	return document?.estado === "EN_REVISION"
+		&& Number(document.id_paciente) > 0
+		&& Number(document.id_tipo) > 0
+		&& Boolean(document.fecha)
+		&& Number(document.consecutivo) > 0;
 }
 
 function renderErrorDocuments() {
@@ -483,7 +369,6 @@ async function loadLookups() {
 	state.documentTypes = documentTypes;
 	state.patients = patients;
 	renderLookups();
-	syncProcessRoute();
 }
 
 async function loadDocuments(options = {}) {
@@ -535,9 +420,6 @@ function fillModalSelections(document) {
 	if (reviewPatientIdInput) {
 		reviewPatientIdInput.value = patientId;
 	}
-	if (processDocumentIdInput) {
-		processDocumentIdInput.value = String(document.id_documento);
-	}
 	if (errorDocumentIdInput) {
 		errorDocumentIdInput.value = String(document.id_documento);
 	}
@@ -547,6 +429,7 @@ function fillModalSelections(document) {
 	}
 	if (reviewPatientNameInput) {
 		reviewPatientNameInput.value = patientName;
+		reviewPatientNameInput.dataset.autofilled = patient ? "true" : "false";
 	}
 	if (reviewTypeSelect) {
 		reviewTypeSelect.value = typeId;
@@ -557,33 +440,14 @@ function fillModalSelections(document) {
 	if (reviewConsecutiveInput) {
 		const reviewPatientId = Number(patientId);
 		const reviewTypeId = Number(typeId);
-		const nextConsecutive = calculateNextConsecutive(reviewPatientId, reviewTypeId, documentDate);
+		const nextConsecutive = calculateNextConsecutive(reviewPatientId, reviewTypeId, documentDate, document.id_documento);
 		reviewConsecutiveInput.value = nextConsecutive;
 		if (reviewConsecutiveDisplay) {
 			reviewConsecutiveDisplay.textContent = String(nextConsecutive).padStart(3, "0");
 		}
 	}
 
-	if (processPatientSelect) {
-		processPatientSelect.value = patientId;
-	}
-	if (processTypeSelect) {
-		processTypeSelect.value = typeId;
-	}
-	if (processDateInput) {
-		processDateInput.value = documentDate;
-	}
-	if (processConsecutiveInput) {
-		const processConsecutive = Number(consecutive) > 0
-			? Number(consecutive)
-			: calculateNextConsecutive(Number(patientId), Number(typeId), documentDate);
-		processConsecutiveInput.value = processConsecutive;
-		if (processConsecutiveDisplay) {
-			processConsecutiveDisplay.textContent = String(processConsecutive).padStart(3, "0");
-		}
-	}
-
-	syncProcessRoute();
+	syncReviewPatientFromDocument();
 }
 
 function findPatientByDocument(numeroDocumento) {
@@ -595,26 +459,71 @@ function findPatientByDocument(numeroDocumento) {
 	return state.patients.find((patient) => String(patient.numero_documento).trim() === normalizedDocument) || null;
 }
 
-function calculateNextConsecutive(idPaciente, idTipo, fecha) {
+function syncReviewPatientFromDocument() {
+	const patientDoc = String(reviewPatientDocumentInput?.value || "").trim();
+	const patient = findPatientByDocument(patientDoc);
+
+	if (!patientDoc) {
+		if (reviewPatientIdInput) {
+			reviewPatientIdInput.value = "";
+		}
+		if (reviewPatientStatus) {
+			reviewPatientStatus.textContent = "Si el paciente existe, sus datos se cargan automaticamente.";
+		}
+		return;
+	}
+
+	if (patient) {
+		if (reviewPatientIdInput) {
+			reviewPatientIdInput.value = String(patient.id_paciente);
+		}
+		if (reviewPatientNameInput) {
+			reviewPatientNameInput.value = patient.nombre || "";
+			reviewPatientNameInput.dataset.autofilled = "true";
+		}
+		if (reviewPatientStatus) {
+			reviewPatientStatus.textContent = `Paciente encontrado: ${patient.numero_documento} - ${patient.nombre || "Sin nombre"}.`;
+		}
+		return;
+	}
+
+	if (reviewPatientIdInput) {
+		reviewPatientIdInput.value = "";
+	}
+	if (reviewPatientNameInput?.dataset.autofilled === "true") {
+		reviewPatientNameInput.value = "";
+		reviewPatientNameInput.dataset.autofilled = "false";
+	}
+	if (reviewPatientStatus) {
+		reviewPatientStatus.textContent = "Paciente no encontrado. Al guardar la revision se creara con los datos ingresados.";
+	}
+}
+
+function calculateNextConsecutive(idPaciente, idTipo, fecha, currentDocumentId = null) {
 	if (!idPaciente || !idTipo || !fecha) {
 		return 1;
 	}
 
-	// Find all documents with matching paciente, tipo, and fecha
-	const matchingDocs = state.documents.filter(
-		(doc) => doc.id_paciente === idPaciente && doc.id_tipo === idTipo && doc.fecha === fecha
-	);
+	const currentId = Number(currentDocumentId || 0);
+	const matchingDocs = state.documents.filter((doc) => {
+		const isCurrentDocument = currentId > 0 && Number(doc.id_documento) === currentId;
+		return !isCurrentDocument
+			&& doc.estado === "PROCESADO"
+			&& Number(doc.id_paciente) === Number(idPaciente)
+			&& Number(doc.id_tipo) === Number(idTipo)
+			&& doc.fecha === fecha;
+	});
 
 	if (matchingDocs.length === 0) {
 		return 1;
 	}
 
-	// Get max consecutivo and add 1
 	const maxConsecutive = Math.max(...matchingDocs.map((doc) => doc.consecutivo || 0));
 	return maxConsecutive + 1;
 }
 
 function updateReviewConsecutive() {
+	syncReviewPatientFromDocument();
 	const patientDoc = String(reviewPatientDocumentInput?.value || "").trim();
 	const typeId = Number(reviewTypeSelect?.value || 0);
 	const date = reviewDateInput?.value || "";
@@ -627,26 +536,13 @@ function updateReviewConsecutive() {
 		}
 	}
 
-	const nextConsecutive = calculateNextConsecutive(patientId, typeId, date);
+	const currentDocumentId = Number(reviewDocumentIdInput?.value || 0);
+	const nextConsecutive = calculateNextConsecutive(patientId, typeId, date, currentDocumentId);
 	if (reviewConsecutiveInput) {
 		reviewConsecutiveInput.value = nextConsecutive;
 	}
 	if (reviewConsecutiveDisplay) {
 		reviewConsecutiveDisplay.textContent = String(nextConsecutive).padStart(3, "0");
-	}
-}
-
-function updateProcessConsecutive() {
-	const patientId = Number(processPatientSelect?.value || 0);
-	const typeId = Number(processTypeSelect?.value || 0);
-	const date = processDateInput?.value || "";
-
-	const nextConsecutive = calculateNextConsecutive(patientId, typeId, date);
-	if (processConsecutiveInput) {
-		processConsecutiveInput.value = nextConsecutive;
-	}
-	if (processConsecutiveDisplay) {
-		processConsecutiveDisplay.textContent = String(nextConsecutive).padStart(3, "0");
 	}
 }
 
@@ -659,17 +555,6 @@ function openReviewModal(documentId) {
 	fillModalSelections(document);
 	reviewModalTitle.textContent = `Revisar documento #${document.id_documento}`;
 	reviewModal.show();
-}
-
-function openProcessModal(documentId) {
-	const document = state.documents.find((item) => item.id_documento === Number(documentId)) || state.documents.find((item) => item.id_documento === state.selectedId);
-	if (!document || !processModal) {
-		return;
-	}
-
-	fillModalSelections(document);
-	processModalTitle.textContent = `Procesar documento #${document.id_documento}`;
-	processModal.show();
 }
 
 function openErrorModal(documentId) {
@@ -695,21 +580,6 @@ function openErrorDocumentsModal() {
 
 	renderErrorDocuments();
 	errorDocumentsModal.show();
-}
-
-function openPatientModal() {
-	if (!patientModal) {
-		return;
-	}
-
-	if (newPatientDocumentInput) {
-		newPatientDocumentInput.value = "";
-	}
-	if (newPatientNameInput) {
-		newPatientNameInput.value = "";
-	}
-	patientModalTitle.textContent = "Nuevo paciente";
-	patientModal.show();
 }
 
 async function handleReviewSubmit(event) {
@@ -739,6 +609,7 @@ async function handleReviewSubmit(event) {
 		await patchJson(`/documents/${documentId}/review`, payload);
 		setMessage(documentsMessage, "Documento marcado en revisión correctamente.", "success");
 		reviewModal?.hide();
+		await loadLookups();
 		await loadDocuments({ preserveMessage: true });
 		setSelectedDocument(documentId);
 	} catch (error) {
@@ -748,36 +619,43 @@ async function handleReviewSubmit(event) {
 	}
 }
 
-async function handleProcessSubmit(event) {
-	event.preventDefault();
+async function processDocumentDirectly(documentId, triggerButton = null) {
 	setMessage(documentsMessage, "");
 
-	const documentId = Number(processDocumentIdInput?.value || 0);
+	const document = state.documents.find((item) => item.id_documento === Number(documentId));
+	if (!document) {
+		setMessage(documentsMessage, "No se encontró el documento seleccionado.");
+		return;
+	}
+
+	if (!canProcessDocument(document)) {
+		setMessage(documentsMessage, "Primero guarda la revisión con paciente, tipo, fecha y consecutivo antes de procesar.");
+		return;
+	}
+
 	const payload = {
-		id_paciente: Number(processPatientSelect?.value || 0),
-		id_tipo: Number(processTypeSelect?.value || 0),
-		fecha: processDateInput?.value || "",
-		consecutivo: Number(processConsecutiveInput?.value || 0),
-		ruta_archivo: processRouteInput?.value?.trim() || "",
+		id_paciente: Number(document.id_paciente),
+		id_tipo: Number(document.id_tipo),
+		fecha: document.fecha,
+		consecutivo: Number(document.consecutivo),
 	};
 
-	if (!documentId || !payload.id_paciente || !payload.id_tipo || !payload.fecha || !payload.consecutivo || !payload.ruta_archivo) {
+	if (!documentId || !payload.id_paciente || !payload.id_tipo || !payload.fecha || !payload.consecutivo) {
 		setMessage(documentsMessage, "Completa todos los datos para procesar el documento.");
 		return;
 	}
 
-	setButtonLoading(processSubmitButton, true, "Procesando...");
+	setButtonLoading(triggerButton, true, "Procesando...");
 	try {
 		await patchJson(`/documents/${documentId}/process`, payload);
 		setMessage(documentsMessage, "Documento procesado correctamente.", "success");
-		processModal?.hide();
 		await loadDocuments({ preserveMessage: true });
 		setSelectedDocument(documentId);
 	} catch (error) {
 		setMessage(documentsMessage, error.message || "No fue posible procesar el documento.");
 		await loadDocuments({ preserveMessage: true });
 	} finally {
-		setButtonLoading(processSubmitButton, false);
+		setButtonLoading(triggerButton, false);
 	}
 }
 
@@ -807,49 +685,6 @@ async function handleErrorSubmit(event) {
 	}
 }
 
-async function handlePatientSubmit(event) {
-	event.preventDefault();
-	setMessage(documentsMessage, "");
-
-	const numero_documento = String(newPatientDocumentInput?.value || "").trim();
-	const nombre = String(newPatientNameInput?.value || "").trim();
-
-	if (numero_documento.length < 3 || nombre.length < 2) {
-		setMessage(documentsMessage, "Completa número de documento y nombre del paciente.");
-		return;
-	}
-
-	setButtonLoading(patientSubmitButton, true, "Creando...");
-	try {
-		const createdPatient = await postJson("/documents/meta/pacientes", {
-			numero_documento,
-			nombre,
-		});
-		setMessage(documentsMessage, "Paciente creado correctamente.", "success");
-		patientModal?.hide();
-		await loadLookups();
-		if (createdPatient?.id_paciente) {
-				if (reviewPatientDocumentInput) {
-					reviewPatientDocumentInput.value = String(createdPatient.numero_documento || "");
-			}
-				if (reviewPatientNameInput) {
-					reviewPatientNameInput.value = String(createdPatient.nombre || "");
-				}
-				if (reviewPatientIdInput) {
-					reviewPatientIdInput.value = String(createdPatient.id_paciente || "");
-				}
-				if (processPatientSelect) {
-					processPatientSelect.value = String(createdPatient.id_paciente);
-			}
-			syncProcessRoute();
-		}
-	} catch (error) {
-		setMessage(documentsMessage, error.message || "No fue posible crear el paciente.");
-	} finally {
-		setButtonLoading(patientSubmitButton, false);
-	}
-}
-
 function handleTableClick(event) {
 	const button = event.target.closest("button[data-action]");
 	const row = event.target.closest("tr[data-id]");
@@ -867,7 +702,7 @@ function handleTableClick(event) {
 			return;
 		}
 		if (action === "process") {
-			openProcessModal(documentId);
+			processDocumentDirectly(documentId, button);
 			return;
 		}
 		if (action === "error") {
@@ -899,7 +734,6 @@ function handleErrorDocumentsClick(event) {
 function bindEvents() {
 	refreshDocumentsButton?.addEventListener("click", () => loadDocuments());
 	viewErrorsButton?.addEventListener("click", openErrorDocumentsModal);
-	newPatientButton?.addEventListener("click", openPatientModal);
 	logoutButton?.addEventListener("click", logout);
 	reviewDocumentButton?.addEventListener("click", () => {
 		if (state.selectedId) {
@@ -908,7 +742,7 @@ function bindEvents() {
 	});
 	processDocumentButton?.addEventListener("click", () => {
 		if (state.selectedId) {
-			openProcessModal(state.selectedId);
+			processDocumentDirectly(state.selectedId, processDocumentButton);
 		}
 	});
 	errorDocumentButton?.addEventListener("click", () => {
@@ -935,33 +769,18 @@ function bindEvents() {
 	});
 	pendingDocumentsTableBody?.addEventListener("click", handleTableClick);
 	reviewForm?.addEventListener("submit", handleReviewSubmit);
-	processForm?.addEventListener("submit", handleProcessSubmit);
 	errorForm?.addEventListener("submit", handleErrorSubmit);
-	patientForm?.addEventListener("submit", handlePatientSubmit);
-
-	processPatientSelect?.addEventListener("change", syncProcessRoute);
-	processTypeSelect?.addEventListener("change", syncProcessRoute);
-	processDateInput?.addEventListener("change", syncProcessRoute);
 
 	reviewPatientDocumentInput?.addEventListener("input", updateReviewConsecutive);
+	reviewPatientNameInput?.addEventListener("input", () => {
+		if (reviewPatientNameInput) {
+			reviewPatientNameInput.dataset.autofilled = "false";
+		}
+	});
 	reviewTypeSelect?.addEventListener("change", updateReviewConsecutive);
 	reviewDateInput?.addEventListener("change", updateReviewConsecutive);
 
-	processPatientSelect?.addEventListener("change", updateProcessConsecutive);
-	processTypeSelect?.addEventListener("change", updateProcessConsecutive);
-	processDateInput?.addEventListener("change", updateProcessConsecutive);
-
 	reviewModalEl?.addEventListener("show.bs.modal", () => {
-		if (!state.selectedId) {
-			return;
-		}
-		const document = state.documents.find((item) => item.id_documento === state.selectedId);
-		if (document) {
-			fillModalSelections(document);
-		}
-	});
-
-	processModalEl?.addEventListener("show.bs.modal", () => {
 		if (!state.selectedId) {
 			return;
 		}
@@ -976,15 +795,15 @@ function bindEvents() {
 		if (reviewPatientIdInput) {
 			reviewPatientIdInput.value = "";
 		}
-	});
-	processModalEl?.addEventListener("hidden.bs.modal", () => {
-		processForm?.reset();
+		if (reviewPatientNameInput) {
+			reviewPatientNameInput.dataset.autofilled = "false";
+		}
+		if (reviewPatientStatus) {
+			reviewPatientStatus.textContent = "Si el paciente existe, sus datos se cargan automaticamente.";
+		}
 	});
 	errorModalEl?.addEventListener("hidden.bs.modal", () => {
 		errorForm?.reset();
-	});
-	patientModalEl?.addEventListener("hidden.bs.modal", () => {
-		patientForm?.reset();
 	});
 }
 

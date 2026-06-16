@@ -491,11 +491,7 @@ def process_document(
 				payload.fecha.isoformat(),
 				payload.consecutivo,
 			)
-			destination_path = nas_storage_service.resolve_destination_path(
-				payload.ruta_archivo,
-				nombre_archivo,
-				default_destination,
-			)
+			destination_path = default_destination
 
 			source_path = Path(row["ruta_temporal"])
 			try:

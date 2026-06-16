@@ -18,7 +18,6 @@ class DocumentProcessRequest(BaseModel):
 	id_tipo: int = Field(..., gt=0)
 	fecha: date
 	consecutivo: int = Field(..., ge=1)
-	ruta_archivo: str = Field(..., min_length=1, max_length=500)
 
 
 class DocumentErrorRequest(BaseModel):
