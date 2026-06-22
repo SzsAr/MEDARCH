@@ -67,8 +67,7 @@ class PatientCreateRequest(BaseModel):
 	nombre: str = Field(..., min_length=2, max_length=150)
 
 
-class PatientUpdateRequest(BaseModel):
-	numero_documento: str = Field(..., min_length=3, max_length=20)
+class PatientNameUpdateRequest(BaseModel):
 	nombre: str = Field(..., min_length=2, max_length=150)
 
 

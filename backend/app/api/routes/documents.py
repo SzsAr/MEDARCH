@@ -2,6 +2,7 @@ from datetime import date
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import FileResponse
 
 from app.core.security import get_current_user, require_role
 from app.schemas.document_schema import (
@@ -14,7 +15,7 @@ from app.schemas.document_schema import (
 	DocumentTypeResponse,
 	DocumentTypeUpdateRequest,
 	PatientCreateRequest,
-	PatientUpdateRequest,
+	PatientNameUpdateRequest,
 	PatientResponse,
 )
 from app.services.document_service import (
@@ -22,6 +23,7 @@ from app.services.document_service import (
 	create_patient,
 	get_document_audit,
 	get_document_by_id,
+	get_processed_document_file_path,
 	get_document_type_by_id,
 	list_documents,
 	list_document_types,
@@ -46,8 +48,11 @@ def listar_documentos_endpoint(
 	fecha_desde: Optional[date] = Query(default=None),
 	fecha_hasta: Optional[date] = Query(default=None),
 	q: Optional[str] = Query(default=None, min_length=1),
-	_: Dict[str, Any] = Depends(get_current_user),
+	current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> List[DocumentResponse]:
+	if current_user.get("rol") == "CONSULTA":
+		estado = "PROCESADO"
+
 	return list_documents(
 		estado=estado,
 		id_paciente=id_paciente,
@@ -115,13 +120,13 @@ def crear_paciente_endpoint(
 	return create_patient(payload)
 
 
-@router.put("/meta/pacientes/{id_paciente}", response_model=PatientResponse)
-def actualizar_paciente_endpoint(
+@router.patch("/meta/pacientes/{id_paciente}/nombre", response_model=PatientResponse)
+def actualizar_nombre_paciente_endpoint(
 	id_paciente: int,
-	payload: PatientUpdateRequest,
-	_: Dict[str, Any] = Depends(get_current_user),
+	payload: PatientNameUpdateRequest,
+	current_user: Dict[str, Any] = Depends(require_role("SUPERADMIN")),
 ) -> PatientResponse:
-	return update_patient(id_paciente, payload.numero_documento, payload.nombre)
+	return update_patient(id_paciente, payload.nombre, current_user)
 
 
 @router.get("/{id_documento}", response_model=DocumentResponse)
@@ -130,6 +135,19 @@ def obtener_documento_endpoint(
 	_: Dict[str, Any] = Depends(get_current_user),
 ) -> DocumentResponse:
 	return get_document_by_id(id_documento)
+
+
+@router.get("/{id_documento}/file")
+def abrir_archivo_documento_endpoint(
+	id_documento: int,
+	_: Dict[str, Any] = Depends(get_current_user),
+) -> FileResponse:
+	file_path = get_processed_document_file_path(id_documento)
+	return FileResponse(
+		path=file_path,
+		media_type="application/pdf",
+		filename=file_path.name,
+	)
 
 
 @router.patch("/{id_documento}/review", response_model=DocumentResponse)

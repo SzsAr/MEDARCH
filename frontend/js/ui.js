@@ -1,4 +1,13 @@
-import { clearToken, getToken } from "./api.js";
+import { clearToken, decodeJwtPayload, hasValidToken } from "./api.js";
+
+const PAGE_ROLES = {
+	"dashboard.html": ["SUPERADMIN", "ARCHIVO", "CONSULTA"],
+	"documentos.html": ["SUPERADMIN", "ARCHIVO"],
+	"consulta_documentos.html": ["SUPERADMIN", "ARCHIVO", "CONSULTA"],
+	"pacientes.html": ["SUPERADMIN"],
+	"tipos_documento.html": ["SUPERADMIN"],
+	"users.html": ["SUPERADMIN"],
+};
 
 export function getLoginRedirect() {
 	return "./dashboard.html";
@@ -9,12 +18,45 @@ export function getUsersRedirect() {
 }
 
 export function ensureSession() {
-	if (!getToken()) {
+	if (!hasValidToken()) {
+		clearToken();
 		window.location.href = "./login.html";
 		return false;
 	}
 
+	const role = String(decodeJwtPayload()?.rol || "").toUpperCase();
+	const currentPage = window.location.pathname.split("/").pop() || "dashboard.html";
+	const allowedRoles = PAGE_ROLES[currentPage];
+
+	if (allowedRoles && !allowedRoles.includes(role)) {
+		window.location.replace("./dashboard.html");
+		return false;
+	}
+
+	configureNavigation(role, currentPage);
+
 	return true;
+}
+
+export function configureNavigation(role, currentPage) {
+	document.querySelectorAll("[data-nav-roles]").forEach((element) => {
+		const allowedRoles = String(element.dataset.navRoles || "")
+			.split(",")
+			.map((item) => item.trim())
+			.filter(Boolean);
+		element.hidden = !allowedRoles.includes(role);
+	});
+
+	document.querySelectorAll(".medarch-nav-pill[href]").forEach((link) => {
+		const targetPage = link.getAttribute("href")?.split("/").pop();
+		const isActive = targetPage === currentPage;
+		link.classList.toggle("active", isActive);
+		if (isActive) {
+			link.setAttribute("aria-current", "page");
+		} else {
+			link.removeAttribute("aria-current");
+		}
+	});
 }
 
 export function logout() {

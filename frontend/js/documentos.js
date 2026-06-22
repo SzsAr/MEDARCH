@@ -212,7 +212,7 @@ function renderDocuments() {
 }
 
 function canProcessDocument(document) {
-	return document?.estado === "EN_REVISION"
+	return ["EN_REVISION", "ERROR"].includes(document?.estado)
 		&& Number(document.id_paciente) > 0
 		&& Number(document.id_tipo) > 0
 		&& Boolean(document.fecha)

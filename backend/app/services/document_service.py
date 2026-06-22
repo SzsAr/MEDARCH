@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +24,7 @@ from app.schemas.document_schema import (
 
 
 ALLOWED_PROCESS_ROLES = {"ARCHIVO", "SUPERADMIN"}
+logger = logging.getLogger(__name__)
 
 
 def _ensure_write_role(current_user: Dict[str, Any]) -> None:
@@ -345,6 +347,31 @@ def get_document_by_id(id_documento: int) -> DocumentResponse:
 	return _build_document_response(row)
 
 
+def get_processed_document_file_path(id_documento: int) -> Path:
+	try:
+		with get_db_cursor(dict_cursor=True) as (_, cur):
+			row = _get_document_row(cur, id_documento)
+	except Exception as exc:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			detail="Error al consultar documento",
+		) from exc
+
+	if not row:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="Documento no encontrado",
+		)
+
+	if row["estado"] != "PROCESADO" or not row["ruta_archivo"]:
+		raise HTTPException(
+			status_code=status.HTTP_409_CONFLICT,
+			detail="El documento aun no tiene archivo final disponible",
+		)
+
+	return nas_storage_service.get_existing_file(row["ruta_archivo"])
+
+
 def review_document(
 	id_documento: int,
 	payload: DocumentReviewRequest,
@@ -434,6 +461,8 @@ def process_document(
 ) -> DocumentResponse:
 	_ensure_write_role(current_user)
 
+	destination_path: Optional[Path] = None
+
 	try:
 		with get_db_cursor(dict_cursor=True) as (_, cur):
 			row = _get_document_row(cur, id_documento)
@@ -477,6 +506,32 @@ def process_document(
 				raise HTTPException(
 					status_code=status.HTTP_404_NOT_FOUND,
 					detail="Tipo de documento no encontrado o inactivo",
+				)
+
+			cur.execute(
+				"""
+				SELECT id_documento
+				FROM gesdoc.documentos
+				WHERE id_documento <> %s
+				  AND id_paciente = %s
+				  AND id_tipo = %s
+				  AND fecha = %s
+				  AND consecutivo = %s
+				  AND estado = 'PROCESADO'
+				LIMIT 1
+				""",
+				(
+					id_documento,
+					payload.id_paciente,
+					payload.id_tipo,
+					payload.fecha,
+					payload.consecutivo,
+				),
+			)
+			if cur.fetchone():
+				raise HTTPException(
+					status_code=status.HTTP_409_CONFLICT,
+					detail="Ya existe un documento procesado con la misma combinación de paciente, tipo, fecha y consecutivo",
 				)
 
 			nombre_archivo = _build_document_file_name(
@@ -553,9 +608,28 @@ def process_document(
 				)
 	except HTTPException:
 		raise
-	except Exception as exc:
+	except IntegrityError as exc:
 		try:
-			if destination_path.exists():
+			if destination_path and destination_path.exists():
+				destination_path.unlink()
+		except Exception:
+			pass
+		try:
+			_set_document_error_state(
+				id_documento,
+				int(current_user["id_usuario"]),
+				"Conflicto de integridad al procesar documento. Revisa consecutivo o índice único de documentos procesados.",
+			)
+		except Exception:
+			pass
+		raise HTTPException(
+			status_code=status.HTTP_409_CONFLICT,
+			detail="No se pudo procesar porque existe un conflicto de consecutivo para la combinación seleccionada",
+		) from exc
+	except Exception as exc:
+		logger.exception("Error inesperado al procesar documento %s", id_documento)
+		try:
+			if destination_path and destination_path.exists():
 				destination_path.unlink()
 		except Exception:
 			pass
@@ -852,18 +926,24 @@ def list_patients(q: Optional[str] = None) -> List[PatientResponse]:
 	return [PatientResponse(**patient) for patient in patients]
 
 
-def update_patient(id_paciente: int, numero_documento: str, nombre: str) -> PatientResponse:
+def update_patient(
+	id_paciente: int,
+	nombre: str,
+	current_user: Dict[str, Any],
+) -> PatientResponse:
+	normalized_name = nombre.strip()
 	try:
 		with get_db_cursor(dict_cursor=True) as (_, cur):
 			cur.execute(
 				"""
-				SELECT id_paciente
+				SELECT id_paciente, numero_documento, nombre
 				FROM gesdoc.pacientes
 				WHERE id_paciente = %s
 				""",
 				(id_paciente,),
 			)
-			if not cur.fetchone():
+			current_patient = cur.fetchone()
+			if not current_patient:
 				raise HTTPException(
 					status_code=status.HTTP_404_NOT_FOUND,
 					detail="Paciente no encontrado",
@@ -876,7 +956,7 @@ def update_patient(id_paciente: int, numero_documento: str, nombre: str) -> Pati
 				WHERE numero_documento = %s
 				  AND id_paciente <> %s
 				""",
-				(numero_documento, id_paciente),
+				(current_patient["numero_documento"], id_paciente),
 			)
 			if cur.fetchone():
 				raise HTTPException(
@@ -887,14 +967,24 @@ def update_patient(id_paciente: int, numero_documento: str, nombre: str) -> Pati
 			cur.execute(
 				"""
 				UPDATE gesdoc.pacientes
-				SET numero_documento = %s,
-				    nombre = %s
+				SET nombre = %s
 				WHERE id_paciente = %s
 				RETURNING id_paciente, numero_documento, nombre, fecha_creacion
 				""",
-				(numero_documento, nombre, id_paciente),
+				(normalized_name, id_paciente),
 			)
 			patient = cur.fetchone()
+
+			_log_audit(
+				cur,
+				None,
+				int(current_user["id_usuario"]),
+				"PACIENTE_NOMBRE_ACTUALIZADO",
+				(
+					f"Paciente {current_patient['numero_documento']}: "
+					f"nombre cambiado de '{current_patient['nombre'] or ''}' a '{normalized_name}'"
+				),
+			)
 	except HTTPException:
 		raise
 	except Exception as exc:

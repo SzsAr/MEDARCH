@@ -1,12 +1,14 @@
-import { getToken, postJson, setToken } from "./api.js";
+import { clearToken, hasValidToken, postJson, setToken } from "./api.js";
 import { getLoginRedirect, setMessage, setButtonLoading } from "./ui.js";
 
 const form = document.querySelector("#loginForm");
 const messageBox = document.querySelector("#loginMessage");
 const submitButton = document.querySelector("#loginSubmit");
 
-if (getToken()) {
+if (hasValidToken()) {
 	window.location.href = getLoginRedirect();
+} else {
+	clearToken();
 }
 
 function validateForm(usuario, password) {

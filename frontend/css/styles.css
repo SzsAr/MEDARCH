@@ -37,10 +37,58 @@ body {
 	letter-spacing: 0.02em;
 }
 
+.medarch-brand-mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 0.7rem;
+	background: linear-gradient(135deg, var(--medarch-primary), var(--medarch-secondary));
+	color: #fff;
+	font-size: 0.9rem;
+	box-shadow: 0 0.45rem 1rem rgba(31, 58, 95, 0.18);
+}
+
 .medarch-navbar {
 	background: rgba(255, 255, 255, 0.88);
 	backdrop-filter: blur(12px);
 	border-bottom: 1px solid rgba(219, 227, 234, 0.9);
+}
+
+.medarch-main-nav {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.35rem;
+}
+
+.medarch-nav-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 2.5rem;
+	padding: 0.55rem 0.8rem;
+	border-radius: 0.75rem;
+	color: #607086;
+	font-size: 0.9rem;
+	font-weight: 650;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.medarch-nav-pill:hover {
+	background: rgba(74, 144, 226, 0.08);
+	color: var(--medarch-primary);
+}
+
+.medarch-nav-pill.active {
+	background: rgba(31, 58, 95, 0.1);
+	color: var(--medarch-primary);
+}
+
+.medarch-nav-pill[hidden] {
+	display: none;
 }
 
 .medarch-card {
@@ -119,6 +167,322 @@ body {
 .medarch-btn-outline:hover {
 	background: rgba(74, 144, 226, 0.08);
 	border-color: rgba(74, 144, 226, 0.3);
+}
+
+.medarch-btn-quiet {
+	background: transparent;
+	border: 1px solid transparent;
+	color: #6b7a8c;
+}
+
+.medarch-btn-quiet:hover,
+.medarch-btn-quiet:focus {
+	background: rgba(31, 58, 95, 0.06);
+	color: var(--medarch-primary);
+}
+
+.medarch-dashboard-hero {
+	position: relative;
+	display: grid;
+	grid-template-columns: minmax(0, 1.45fr) minmax(16rem, 0.55fr);
+	min-height: 24rem;
+	overflow: hidden;
+	border-radius: 1.75rem;
+	background:
+		radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.16), transparent 25%),
+		linear-gradient(135deg, var(--medarch-primary), var(--medarch-secondary));
+	color: #fff;
+	box-shadow: var(--medarch-shadow);
+}
+
+.medarch-dashboard-hero::after {
+	content: "";
+	position: absolute;
+	right: -6rem;
+	bottom: -11rem;
+	width: 27rem;
+	height: 27rem;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 50%;
+	box-shadow:
+		0 0 0 3rem rgba(255, 255, 255, 0.035),
+		0 0 0 7rem rgba(255, 255, 255, 0.025);
+}
+
+.medarch-dashboard-hero-content {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: clamp(2rem, 5vw, 4.5rem);
+}
+
+.medarch-eyebrow {
+	font-size: 0.76rem;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.medarch-eyebrow-dark {
+	color: #718197;
+}
+
+.medarch-dashboard-title {
+	max-width: 12ch;
+	font-size: clamp(2.3rem, 5vw, 4.4rem);
+	font-weight: 750;
+	line-height: 0.98;
+	letter-spacing: -0.045em;
+}
+
+.medarch-dashboard-copy {
+	max-width: 38rem;
+	font-size: clamp(1rem, 2vw, 1.18rem);
+	line-height: 1.65;
+	color: rgba(255, 255, 255, 0.76);
+}
+
+.medarch-dashboard-primary-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 2rem;
+	min-width: 13rem;
+	color: var(--medarch-primary);
+}
+
+.medarch-dashboard-hero-visual {
+	position: relative;
+	z-index: 2;
+	align-items: center;
+	justify-content: center;
+	padding-right: 3rem;
+}
+
+.medarch-file-stack {
+	position: relative;
+	width: 13rem;
+	height: 15rem;
+	transform: rotate(2deg);
+}
+
+.medarch-file-sheet {
+	position: absolute;
+	inset: 0;
+	border: 1px solid rgba(255, 255, 255, 0.45);
+	border-radius: 1.35rem;
+}
+
+.medarch-file-sheet-back {
+	transform: rotate(-11deg) translate(-1rem, 0.5rem);
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.medarch-file-sheet-middle {
+	transform: rotate(-5deg) translate(-0.45rem, 0.25rem);
+	background: rgba(255, 255, 255, 0.22);
+}
+
+.medarch-file-sheet-front {
+	display: grid;
+	align-content: center;
+	gap: 1rem;
+	padding: 2rem;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 1.5rem 4rem rgba(17, 44, 79, 0.24);
+}
+
+.medarch-file-sheet-front span {
+	display: block;
+	height: 0.55rem;
+	border-radius: 999px;
+	background: rgba(74, 144, 226, 0.2);
+}
+
+.medarch-file-sheet-front span:nth-child(2) {
+	width: 78%;
+}
+
+.medarch-file-sheet-front span:nth-child(3) {
+	width: 55%;
+}
+
+.medarch-file-check {
+	position: absolute;
+	right: -1.25rem;
+	bottom: 1.1rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 4.2rem;
+	height: 4.2rem;
+	border: 0.45rem solid rgba(255, 255, 255, 0.75);
+	border-radius: 50%;
+	background: var(--medarch-success);
+	color: #fff;
+	font-size: 1.7rem;
+	font-weight: 800;
+	box-shadow: 0 1rem 2rem rgba(17, 44, 79, 0.25);
+}
+
+.medarch-summary-card {
+	position: relative;
+	display: flex;
+	min-height: 10.5rem;
+	flex-direction: column;
+	justify-content: flex-end;
+	overflow: hidden;
+	padding: 1.25rem;
+	border: 1px solid rgba(219, 227, 234, 0.9);
+	border-radius: 1.2rem;
+	background: #fff;
+	color: var(--medarch-text);
+	text-decoration: none;
+	box-shadow: 0 0.65rem 1.8rem rgba(31, 58, 95, 0.07);
+	transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.medarch-summary-card:hover {
+	transform: translateY(-3px);
+	border-color: rgba(74, 144, 226, 0.35);
+	color: var(--medarch-text);
+	box-shadow: 0 1rem 2.4rem rgba(31, 58, 95, 0.12);
+}
+
+.medarch-summary-icon {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.35rem;
+	height: 2.35rem;
+	border-radius: 0.75rem;
+	font-size: 0.7rem;
+	font-weight: 800;
+}
+
+.medarch-summary-value {
+	font-size: clamp(2rem, 5vw, 3rem);
+	font-weight: 800;
+	line-height: 1;
+	color: var(--medarch-primary);
+}
+
+.medarch-summary-label {
+	margin-top: 0.55rem;
+	font-size: 0.92rem;
+	font-weight: 650;
+	color: #6b7a8c;
+}
+
+.medarch-summary-pending .medarch-summary-icon {
+	background: rgba(74, 144, 226, 0.12);
+	color: #1f5aa8;
+}
+
+.medarch-summary-review .medarch-summary-icon {
+	background: rgba(31, 58, 95, 0.1);
+	color: var(--medarch-primary);
+}
+
+.medarch-summary-processed .medarch-summary-icon {
+	background: rgba(31, 122, 79, 0.1);
+	color: var(--medarch-success);
+}
+
+.medarch-summary-error .medarch-summary-icon {
+	background: rgba(231, 76, 60, 0.1);
+	color: var(--medarch-error);
+}
+
+.medarch-action-card {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 1rem;
+	min-height: 8rem;
+	padding: 1.3rem;
+	border: 1px solid rgba(219, 227, 234, 0.9);
+	border-radius: 1.2rem;
+	background: #fff;
+	color: var(--medarch-text);
+	text-decoration: none;
+	transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.medarch-action-card:hover {
+	transform: translateY(-2px);
+	border-color: rgba(74, 144, 226, 0.4);
+	color: var(--medarch-text);
+	box-shadow: 0 1rem 2.4rem rgba(31, 58, 95, 0.09);
+}
+
+.medarch-action-number {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 3rem;
+	height: 3rem;
+	border-radius: 1rem;
+	background: #f2f7fd;
+	color: var(--medarch-secondary);
+	font-size: 0.75rem;
+	font-weight: 800;
+}
+
+.medarch-action-content {
+	display: grid;
+	gap: 0.3rem;
+}
+
+.medarch-action-content strong {
+	color: var(--medarch-primary);
+	font-size: 1.05rem;
+}
+
+.medarch-action-content small {
+	color: #6b7a8c;
+	line-height: 1.45;
+}
+
+.medarch-action-arrow {
+	color: var(--medarch-secondary);
+	font-size: 1.45rem;
+	transition: transform 0.2s ease;
+}
+
+.medarch-action-card:hover .medarch-action-arrow {
+	transform: translateX(0.25rem);
+}
+
+.medarch-admin-strip {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.15rem 1.25rem;
+	border: 1px dashed rgba(107, 122, 140, 0.35);
+	border-radius: 1.2rem;
+	background: rgba(255, 255, 255, 0.55);
+}
+
+.medarch-admin-strip > div:first-child {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.medarch-admin-strip strong {
+	color: var(--medarch-primary);
+}
+
+.medarch-admin-strip span {
+	color: #6b7a8c;
+	font-size: 0.88rem;
 }
 
 .medarch-table {
@@ -396,6 +760,22 @@ body {
 }
 
 @media (max-width: 768px) {
+	.medarch-navbar .container {
+		align-items: flex-start;
+	}
+
+	.medarch-main-nav {
+		width: 100%;
+		justify-content: flex-start;
+		overflow-x: auto;
+		padding: 0.55rem 0 0.15rem;
+		scrollbar-width: thin;
+	}
+
+	.medarch-nav-pill {
+		flex: 0 0 auto;
+	}
+
 	.medarch-section {
 		padding: 1rem;
 	}
@@ -403,4 +783,29 @@ body {
 	.medarch-hero {
 		border-radius: 1rem;
 	}
+
+	.medarch-dashboard-hero {
+		display: block;
+		min-height: auto;
+		border-radius: 1.25rem;
+	}
+
+	.medarch-dashboard-hero-content {
+		padding: 2rem 1.35rem;
+	}
+
+	.medarch-dashboard-title {
+		font-size: clamp(2.15rem, 12vw, 3rem);
+	}
+
+	.medarch-summary-card {
+		min-height: 9rem;
+		padding: 1rem;
+	}
+
+	.medarch-admin-strip {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
 }

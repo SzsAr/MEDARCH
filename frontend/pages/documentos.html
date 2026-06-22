@@ -9,15 +9,16 @@
 </head>
 <body>
 	<div class="medarch-shell">
-		<nav class="navbar navbar-expand-lg medarch-navbar sticky-top">
-			<div class="container py-1">
-				<a class="navbar-brand medarch-brand" href="./dashboard.html">MEDARCH</a>
-				<div class="ms-auto d-flex flex-wrap gap-2">
-					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./dashboard.html">Dashboard</a>
-					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./users.html">Usuarios</a>
-					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./tipos_documento.html">Tipos de documento</a>
-					<a class="btn btn-primary medarch-btn medarch-btn-primary" href="./documentos.html" aria-current="page">Pendientes</a>
-					<a class="btn btn-outline-primary medarch-btn medarch-btn-outline" href="./consulta_documentos.html">Consulta</a>
+		<nav class="navbar medarch-navbar sticky-top">
+			<div class="container py-2 flex-wrap">
+				<a class="navbar-brand medarch-brand d-flex align-items-center gap-2" href="./dashboard.html"><span class="medarch-brand-mark" aria-hidden="true">M</span><span>MEDARCH</span></a>
+				<div class="medarch-main-nav ms-auto">
+					<a class="medarch-nav-pill" href="./dashboard.html">Inicio</a>
+					<a class="medarch-nav-pill" href="./documentos.html" data-nav-roles="SUPERADMIN,ARCHIVO" hidden>Pendientes</a>
+					<a class="medarch-nav-pill" href="./consulta_documentos.html">Consulta</a>
+					<a class="medarch-nav-pill" href="./pacientes.html" data-nav-roles="SUPERADMIN" hidden>Pacientes</a>
+					<a class="medarch-nav-pill" href="./tipos_documento.html" data-nav-roles="SUPERADMIN" hidden>Tipos de documento</a>
+					<a class="medarch-nav-pill" href="./users.html" data-nav-roles="SUPERADMIN" hidden>Usuarios</a>
 					<button id="logoutButton" class="btn btn-outline-secondary medarch-btn medarch-btn-outline" type="button">Cerrar sesión</button>
 				</div>
 			</div>
